@@ -46,6 +46,14 @@ class AppStrings {
       'Detected addresses that may need a dedicated alias.';
   static const catchAllDetectedSubtitle =
       'Detected from recent catch-all activity.';
+  static const activityLoadingLabel = 'Loading email activity...';
+  static const activityLoadError =
+      'Unable to load email activity for this domain.';
+  static const activityNoDomainSelected =
+      'Select a domain first to review email activity.';
+  static const activityRefreshButton = 'Refresh activity';
+  static const activityListSubtitle =
+      'Recent email routing events from Cloudflare analytics.';
   static const catchAllIgnoreButton = 'Ignore';
   static const catchAllBlockButton = 'Block';
   static const catchAllBlockPlaceholder =
@@ -126,4 +134,10 @@ class AppStrings {
 
   static String catchAllListTitle(String domainName) =>
       'Catch-All · $domainName';
+
+  static String activityEmptyState(String domainName) =>
+      'No email activity was detected for $domainName yet.';
+
+  static String activityListTitle(String domainName) =>
+      'Activity · $domainName';
 }

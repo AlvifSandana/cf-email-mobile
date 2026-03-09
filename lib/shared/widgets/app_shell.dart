@@ -1,6 +1,8 @@
 import 'package:bariskode_cf_email/core/constants/app_strings.dart';
 import 'package:bariskode_cf_email/core/constants/app_routes.dart';
 import 'package:bariskode_cf_email/features/auth/domain/repositories/auth_repository.dart';
+import 'package:bariskode_cf_email/features/analytics/data/analytics_repository.dart';
+import 'package:bariskode_cf_email/features/analytics/presentation/pages/activity_logs_page.dart';
 import 'package:bariskode_cf_email/features/aliases/data/alias_repository.dart';
 import 'package:bariskode_cf_email/features/aliases/presentation/pages/alias_list_page.dart';
 import 'package:bariskode_cf_email/features/catchall/data/catchall_repository.dart';
@@ -16,12 +18,14 @@ class AppShell extends StatefulWidget {
     required this.domainContext,
     required this.aliasRepository,
     required this.catchAllRepository,
+    required this.analyticsRepository,
   });
 
   final AuthRepository authRepository;
   final DomainContext domainContext;
   final AliasRepositoryContract aliasRepository;
   final CatchAllRepositoryContract catchAllRepository;
+  final AnalyticsRepositoryContract analyticsRepository;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -110,6 +114,14 @@ class _AppShellState extends State<AppShell> {
         domainContext: widget.domainContext,
         aliasRepository: widget.aliasRepository,
         catchAllRepository: widget.catchAllRepository,
+      );
+    }
+
+    if (selectedTab.label == AppStrings.activityTab) {
+      return ActivityLogsPage(
+        analyticsRepository: widget.analyticsRepository,
+        authRepository: widget.authRepository,
+        domainContext: widget.domainContext,
       );
     }
 

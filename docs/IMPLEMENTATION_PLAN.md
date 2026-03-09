@@ -262,7 +262,7 @@ Mulai dari shell app lebih dulu agar setiap feature berikutnya langsung bisa dip
 ## Phase 6 — Catch-All Monitor Sederhana
 **Goal:** memberi visibility terhadap alamat yang tertangkap catch-all.
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Selesai
 
 ### Deliverables
 - Catch-all monitor screen
@@ -296,15 +296,19 @@ Bagian “block” berisiko ambigu jika belum ada endpoint/rule model yang jelas
   - Ignore (local UI state)
   - Block (placeholder UI eksplisit)
 - Widget tests untuk flow dasar Catch-All sudah ditambahkan dan hijau
+- Runtime app sekarang sudah memakai repository nyata berbasis analytics + alias list
+- Detected addresses sekarang disaring dari activity logs untuk domain aktif, mengabaikan alias yang sudah ada, lalu diurutkan dari last seen terbaru
 
 ### Catatan lanjutan
-- Phase ini **belum ditandai selesai** karena app runtime masih memakai `EmptyCatchAllRepository`
-- Agar benar-benar memenuhi vertical slice Phase 6, perlu data source nyata untuk daftar alamat hasil deteksi dari log/activity
+- Action `Block` masih placeholder UI untuk MVP sesuai scope fase ini
+- Formatting label waktu masih minimal dan belum dipoles menjadi relative/human-friendly text
 
 ---
 
 ## Phase 7 — Activity Logs via GraphQL
 **Goal:** menampilkan aktivitas email routing dasar.
+
+**Status:** 🚧 In Progress
 
 ### Deliverables
 - GraphQL client
@@ -330,6 +334,27 @@ Bagian “block” berisiko ambigu jika belum ada endpoint/rule model yang jelas
 - Log tampil untuk domain aktif
 - Error GraphQL ter-handle rapi
 - Pagination dasar berfungsi tanpa duplicate entries
+
+### Progress saat ini
+- Activity tab sudah diganti dari placeholder menjadi `ActivityLogsPage`
+- Sudah ada repository analytics minimal yang memakai GraphQL POST langsung lewat `ApiClient`
+- Sudah ada query dasar untuk mengambil activity log per zone/domain aktif
+- UI minimal sudah menampilkan:
+  - email address
+  - status
+  - SPF
+  - DKIM
+  - DMARC
+  - timestamp
+- Error handling auth/session tetap mengikuti invariant app:
+  - hanya `invalidToken` dan `insufficientPermissions` yang invalidate session
+  - recoverable/network failures tetap stay in flow
+- GraphQL body-level auth errors sudah dipetakan ke auth failure agar tidak salah diklasifikasikan sebagai retryable error biasa
+- Test coverage sudah mencakup repository mapping, malformed-row skipping, auth failure handling, dan widget states dasar
+
+### Catatan lanjutan
+- Pagination/load more masih belum diimplementasikan
+- Verifikasi terhadap variasi respons GraphQL Cloudflare nyata masih perlu dilanjutkan saat masuk slice berikutnya
 
 ---
 

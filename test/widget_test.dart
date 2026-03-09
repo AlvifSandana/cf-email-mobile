@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:bariskode_cf_email/app/app.dart';
 import 'package:bariskode_cf_email/core/constants/app_strings.dart';
+import 'package:bariskode_cf_email/features/analytics/data/analytics_repository.dart';
+import 'package:bariskode_cf_email/features/analytics/domain/entities/activity_log_entry.dart';
 import 'package:bariskode_cf_email/features/aliases/data/alias_repository.dart';
 import 'package:bariskode_cf_email/features/auth/domain/entities/auth_failure.dart';
 import 'package:bariskode_cf_email/features/auth/domain/repositories/auth_repository.dart';
@@ -380,6 +382,83 @@ void main() {
 
       expect(authRepository.logoutCalls, 0);
       expect(find.text(AppStrings.catchAllLoadError), findsOneWidget);
+      expect(find.text(AppStrings.retryButton), findsOneWidget);
+    });
+  });
+
+  group('activity flow', () {
+    testWidgets('shows selected domain activity rows', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          authRepository: FakeAuthRepository(initialToken: _validToken),
+          domainContext:
+              DomainContext(
+                repository: FakeDomainRepository(
+                  domains: const [
+                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                  ],
+                ),
+              )..selectDomain(
+                const DomainSummary(id: 'zone-1', name: 'example.com'),
+              ),
+          analyticsRepository: FakeAnalyticsRepository(
+            logs: [
+              ActivityLogEntry(
+                address: 'sales@example.com',
+                status: 'forwarded',
+                spf: 'pass',
+                dkim: 'pass',
+                dmarc: 'none',
+                timestamp: DateTime.parse('2026-03-09T10:15:00Z'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.activityTab));
+      await tester.pumpAndSettle();
+
+      expect(find.text('sales@example.com'), findsOneWidget);
+      expect(
+        find.text('forwarded · SPF pass · DKIM pass · DMARC none'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('network failure does not logout and shows retry state', (
+      WidgetTester tester,
+    ) async {
+      final authRepository = FakeAuthRepository(initialToken: _validToken);
+
+      await tester.pumpWidget(
+        buildTestApp(
+          authRepository: authRepository,
+          domainContext:
+              DomainContext(
+                repository: FakeDomainRepository(
+                  domains: const [
+                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                  ],
+                ),
+              )..selectDomain(
+                const DomainSummary(id: 'zone-1', name: 'example.com'),
+              ),
+          analyticsRepository: FakeAnalyticsRepository(
+            authFailure: const AuthFailure.network(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(AppStrings.activityTab));
+      await tester.pumpAndSettle();
+
+      expect(authRepository.logoutCalls, 0);
+      expect(find.text(AppStrings.activityLoadError), findsOneWidget);
       expect(find.text(AppStrings.retryButton), findsOneWidget);
     });
   });
@@ -1677,6 +1756,7 @@ BariskodeCfEmailApp buildTestApp({
   DomainContext? domainContext,
   AliasRepositoryContract? aliasRepository,
   CatchAllRepositoryContract? catchAllRepository,
+  AnalyticsRepositoryContract? analyticsRepository,
 }) {
   return BariskodeCfEmailApp(
     authRepository: authRepository,
@@ -1684,6 +1764,7 @@ BariskodeCfEmailApp buildTestApp({
         domainContext ?? DomainContext(repository: FakeDomainRepository()),
     aliasRepository: aliasRepository ?? FakeAliasRepository(),
     catchAllRepository: catchAllRepository ?? const FakeCatchAllRepository(),
+    analyticsRepository: analyticsRepository ?? FakeAnalyticsRepository(),
   );
 }
 
@@ -1812,6 +1893,30 @@ class FakeCatchAllRepository implements CatchAllRepositoryContract {
     }
 
     return List<CatchAllEntry>.unmodifiable(entriesByZone[zoneId] ?? const []);
+  }
+}
+
+class FakeAnalyticsRepository implements AnalyticsRepositoryContract {
+  FakeAnalyticsRepository({this.logs = const [], this.authFailure, this.error});
+
+  final List<ActivityLogEntry> logs;
+  final AuthFailure? authFailure;
+  final Exception? error;
+
+  @override
+  Future<List<ActivityLogEntry>> listActivityLogs({
+    required String zoneId,
+    int limit = 20,
+  }) async {
+    if (authFailure != null) {
+      throw authFailure!;
+    }
+
+    if (error != null) {
+      throw error!;
+    }
+
+    return List<ActivityLogEntry>.unmodifiable(logs);
   }
 }
 

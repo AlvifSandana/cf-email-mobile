@@ -2,6 +2,7 @@ import 'package:bariskode_cf_email/app/app.dart';
 import 'package:bariskode_cf_email/core/network/api_client.dart';
 import 'package:bariskode_cf_email/core/network/auth_header_provider.dart';
 import 'package:bariskode_cf_email/core/network/cloudflare_auth_api.dart';
+import 'package:bariskode_cf_email/features/analytics/data/analytics_repository.dart';
 import 'package:bariskode_cf_email/features/aliases/data/alias_repository.dart';
 import 'package:bariskode_cf_email/features/auth/data/auth_repository_impl.dart';
 import 'package:bariskode_cf_email/features/auth/data/datasources/auth_local_datasource.dart';
@@ -33,8 +34,12 @@ void main() {
     apiClient: apiClient,
     authApi: authApi,
   );
+  final analyticsRepository = AnalyticsRepository(apiClient: apiClient);
   final aliasRepository = AliasRepository(apiClient: apiClient);
-  const catchAllRepository = EmptyCatchAllRepository();
+  final catchAllRepository = CatchAllRepository(
+    analyticsRepository: analyticsRepository,
+    aliasRepository: aliasRepository,
+  );
   final domainContext = DomainContext(repository: domainRepository);
 
   runApp(
@@ -43,6 +48,7 @@ void main() {
       domainContext: domainContext,
       aliasRepository: aliasRepository,
       catchAllRepository: catchAllRepository,
+      analyticsRepository: analyticsRepository,
     ),
   );
 }
