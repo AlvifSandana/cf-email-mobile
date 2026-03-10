@@ -26,7 +26,6 @@ class ActivityLogsPage extends StatefulWidget {
 
 class _ActivityLogsPageState extends State<ActivityLogsPage> {
   static const int _pageSize = 20;
-  static const int _maxLimit = 100;
 
   List<ActivityLogEntry> _logs = const [];
   bool _isLoading = false;
@@ -34,8 +33,8 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
   String? _errorMessage;
   String? _activeZoneId;
   bool _reloadRequested = false;
-  int _currentLimit = _pageSize;
   bool _hasMore = true;
+  DateTime? _nextBefore;
 
   @override
   void initState() {
@@ -67,8 +66,8 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
         _errorMessage = null;
         _isLoading = false;
         _isLoadingMore = false;
-        _currentLimit = _pageSize;
         _hasMore = true;
+        _nextBefore = null;
       });
       return;
     }
@@ -83,31 +82,31 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
       return;
     }
 
-    _currentLimit = _pageSize;
     _hasMore = true;
-    await _loadLogs(zoneId: zoneId, limit: _currentLimit);
+    _nextBefore = null;
+    await _loadLogs(zoneId: zoneId, append: false);
   }
 
-  Future<void> _loadLogs({String? zoneId, int? limit}) async {
+  Future<void> _loadLogs({String? zoneId, required bool append}) async {
     final requestedZoneId = zoneId ?? widget.domainContext.selectedDomain?.id;
     if (requestedZoneId == null || _isLoading) {
       return;
     }
 
-    final requestedLimit = (limit ?? _currentLimit).clamp(1, _maxLimit);
-
     _activeZoneId = requestedZoneId;
 
     setState(() {
       _isLoading = true;
-      _isLoadingMore = false;
-      _errorMessage = null;
+      if (!append) {
+        _errorMessage = null;
+      }
     });
 
     try {
       final logs = await widget.analyticsRepository.listActivityLogs(
         zoneId: requestedZoneId,
-        limit: requestedLimit,
+        limit: _pageSize,
+        before: append ? _nextBefore : null,
       );
 
       if (!mounted) {
@@ -120,9 +119,11 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
       }
 
       setState(() {
-        _logs = logs;
-        _currentLimit = requestedLimit;
-        _hasMore = logs.length >= requestedLimit && requestedLimit < _maxLimit;
+        _logs = append
+            ? <ActivityLogEntry>[..._logs, ...logs.entries]
+            : logs.entries;
+        _hasMore = logs.hasMore;
+        _nextBefore = logs.nextBefore;
       });
     } on AuthFailure catch (failure) {
       if (!mounted) {
@@ -136,7 +137,14 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
           authRepository: widget.authRepository,
           domainContext: widget.domainContext,
         );
+        if (append) {
+          rethrow;
+        }
         return;
+      }
+
+      if (append) {
+        rethrow;
       }
 
       setState(() {
@@ -145,6 +153,10 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
     } catch (_) {
       if (!mounted) {
         return;
+      }
+
+      if (append) {
+        rethrow;
       }
 
       setState(() {
@@ -179,32 +191,12 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
       return;
     }
 
-    final requestedLimit = (_currentLimit + _pageSize).clamp(1, _maxLimit);
-
     setState(() {
       _isLoadingMore = true;
     });
 
     try {
-      final logs = await widget.analyticsRepository.listActivityLogs(
-        zoneId: zoneId,
-        limit: requestedLimit,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      if (widget.domainContext.selectedDomain?.id != zoneId) {
-        _reloadRequested = true;
-        return;
-      }
-
-      setState(() {
-        _logs = logs;
-        _currentLimit = requestedLimit;
-        _hasMore = logs.length >= requestedLimit && requestedLimit < _maxLimit;
-      });
+      await _loadLogs(zoneId: zoneId, append: true);
     } on AuthFailure catch (failure) {
       if (!mounted) {
         return;
@@ -212,11 +204,6 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
 
       if (failure.type == AuthFailureType.invalidToken ||
           failure.type == AuthFailureType.insufficientPermissions) {
-        await invalidateSessionAndReturnToLogin(
-          context: context,
-          authRepository: widget.authRepository,
-          domainContext: widget.domainContext,
-        );
         return;
       }
 
@@ -264,7 +251,7 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
             message: _errorMessage!,
             actions: [
               FilledButton(
-                onPressed: _loadLogs,
+                onPressed: () => _loadLogs(append: false),
                 child: const Text(AppStrings.retryButton),
               ),
             ],
@@ -277,7 +264,7 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
             message: AppStrings.activityEmptyState(selectedDomain.name),
             actions: [
               OutlinedButton.icon(
-                onPressed: _loadLogs,
+                onPressed: () => _loadLogs(append: false),
                 icon: const Icon(Icons.refresh),
                 label: const Text(AppStrings.activityRefreshButton),
               ),
@@ -287,9 +274,9 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
 
         return RefreshIndicator(
           onRefresh: () {
-            _currentLimit = _pageSize;
             _hasMore = true;
-            return _loadLogs(limit: _currentLimit);
+            _nextBefore = null;
+            return _loadLogs(append: false);
           },
           child: ListView.builder(
             itemCount: _logs.length + 2,
@@ -302,9 +289,9 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
                   subtitle: const Text(AppStrings.activityListSubtitle),
                   trailing: IconButton(
                     onPressed: () {
-                      _currentLimit = _pageSize;
                       _hasMore = true;
-                      _loadLogs(limit: _currentLimit);
+                      _nextBefore = null;
+                      _loadLogs(append: false);
                     },
                     icon: const Icon(Icons.refresh),
                     tooltip: AppStrings.activityRefreshButton,

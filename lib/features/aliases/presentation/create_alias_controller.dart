@@ -34,9 +34,12 @@ class CreateAliasController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool validate({required String aliasLocalPart, required String destination}) {
+  bool validate({
+    required String aliasLocalPart,
+    required String? destination,
+  }) {
     final normalizedAlias = aliasLocalPart.trim();
-    final normalizedDestination = destination.trim();
+    final normalizedDestination = destination?.trim() ?? '';
 
     _aliasError = null;
     _destinationError = null;
@@ -54,8 +57,6 @@ class CreateAliasController extends ChangeNotifier {
 
     if (normalizedDestination.isEmpty) {
       _destinationError = AppStrings.createAliasDestinationRequired;
-    } else if (!EmailValidator.isValid(normalizedDestination)) {
-      _destinationError = AppStrings.createAliasDestinationInvalid;
     }
 
     notifyListeners();
@@ -66,7 +67,7 @@ class CreateAliasController extends ChangeNotifier {
     required String zoneId,
     required String domainName,
     required String aliasLocalPart,
-    required String destination,
+    required String? destination,
   }) async {
     if (!validate(aliasLocalPart: aliasLocalPart, destination: destination)) {
       return const CreateAliasResult.validationFailed();
@@ -78,7 +79,7 @@ class CreateAliasController extends ChangeNotifier {
 
     try {
       final normalizedAlias = aliasLocalPart.trim().toLowerCase();
-      final normalizedDestination = destination.trim().toLowerCase();
+      final normalizedDestination = destination!.trim().toLowerCase();
 
       await _aliasRepository.createAlias(
         zoneId: zoneId,

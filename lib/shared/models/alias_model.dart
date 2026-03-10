@@ -5,6 +5,7 @@ class AliasModel {
     required this.destination,
     required this.isEnabled,
     required this.isSupported,
+    this.actionType = 'forward',
   });
 
   final String id;
@@ -12,6 +13,9 @@ class AliasModel {
   final String destination;
   final bool isEnabled;
   final bool isSupported;
+  final String actionType;
+
+  bool get isBlocked => actionType == 'drop';
 
   static AliasModel fromApi(Map<String, dynamic> json) {
     final id = json['id'];
@@ -22,8 +26,9 @@ class AliasModel {
     }
 
     final address = _extractAddress(json['matchers']);
-    final destination = _extractDestination(json['actions']);
-    final isSupported = address != null && destination != null;
+    final action = _extractAction(json['actions']);
+    final destination = action?.destination;
+    final isSupported = address != null && action != null;
 
     return AliasModel(
       id: id,
@@ -31,6 +36,7 @@ class AliasModel {
       destination: destination ?? 'Unsupported destination',
       isEnabled: enabled is bool ? enabled : true,
       isSupported: isSupported,
+      actionType: action?.type ?? 'unsupported',
     );
   }
 
@@ -56,7 +62,7 @@ class AliasModel {
     return null;
   }
 
-  static String? _extractDestination(Object? actions) {
+  static _ParsedAction? _extractAction(Object? actions) {
     if (actions is! List || actions.length != 1) {
       return null;
     }
@@ -66,7 +72,12 @@ class AliasModel {
       return null;
     }
 
-    if (action['type'] != 'forward') {
+    final type = action['type'];
+    if (type == 'drop') {
+      return const _ParsedAction(type: 'drop', destination: 'Blocked');
+    }
+
+    if (type != 'forward') {
       return null;
     }
 
@@ -77,9 +88,16 @@ class AliasModel {
 
     final destination = value.single;
     if (destination is String && destination.isNotEmpty) {
-      return destination;
+      return _ParsedAction(type: 'forward', destination: destination);
     }
 
     return null;
   }
+}
+
+class _ParsedAction {
+  const _ParsedAction({required this.type, required this.destination});
+
+  final String type;
+  final String destination;
 }

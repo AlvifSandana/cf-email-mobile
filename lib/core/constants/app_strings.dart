@@ -63,6 +63,9 @@ class AppStrings {
   static const activityListSubtitle =
       'Recent email routing events from Cloudflare analytics.';
   static const catchAllIgnoreButton = 'Ignore';
+  static const catchAllBlockButton = 'Block';
+  static const catchAllBlockSuccess = 'Address blocked successfully.';
+  static const catchAllBlockError = 'Unable to block this address right now.';
   static const createAliasButton = 'Create Alias';
   static const aliasGeneratorButton = 'Generate Alias';
   static const aliasGeneratorTitle = 'Alias Generator';
@@ -91,6 +94,23 @@ class AppStrings {
       'Destination email is required.';
   static const createAliasDestinationInvalid =
       'Destination email format is invalid.';
+  static const destinationLoadingLabel = 'Loading destination emails...';
+  static const destinationPickerHint = 'Select a verified destination';
+  static const destinationPickerEmpty =
+      'No verified destination email available yet.';
+  static const destinationPickerAddButton = 'Add Destination';
+  static const destinationDialogTitle = 'Add Destination Email';
+  static const destinationDialogDescription =
+      'Add a destination email address to your verified destination list.';
+  static const destinationDialogSubmitButton = 'Save Destination';
+  static const destinationCreateSuccess =
+      'Destination email added successfully.';
+  static const destinationLoadError = 'Unable to load destination emails.';
+  static const destinationCreateError =
+      'Unable to add destination email right now.';
+  static const destinationVerifiedBadge = 'Verified';
+  static const destinationPendingBadge = 'Pending Verification';
+  static const destinationRequired = 'Select a verified destination email.';
   static const createAliasSuccess = 'Alias created successfully.';
   static const editAliasTitle = 'Edit Alias';
   static const editAliasAliasLabel = 'Alias Address';

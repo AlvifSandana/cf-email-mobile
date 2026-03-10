@@ -24,12 +24,12 @@ void main() {
     expect(alias.isSupported, isTrue);
   });
 
-  test('marks unsupported routing rules safely', () {
+  test('maps simple drop routing rule into blocked alias', () {
     final alias = AliasModel.fromApi({
       'id': 'rule-2',
       'enabled': false,
       'matchers': [
-        {'type': 'regex', 'field': 'to', 'value': '.*'},
+        {'type': 'literal', 'field': 'to', 'value': 'blocked@example.com'},
       ],
       'actions': [
         {'type': 'drop'},
@@ -37,9 +37,10 @@ void main() {
     });
 
     expect(alias.isEnabled, isFalse);
-    expect(alias.isSupported, isFalse);
-    expect(alias.address, 'Unsupported routing rule');
-    expect(alias.destination, 'Unsupported destination');
+    expect(alias.isSupported, isTrue);
+    expect(alias.isBlocked, isTrue);
+    expect(alias.address, 'blocked@example.com');
+    expect(alias.destination, 'Blocked');
   });
 
   test('throws when required alias id is missing', () {

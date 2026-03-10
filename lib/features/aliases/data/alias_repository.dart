@@ -42,12 +42,14 @@ class AliasRepository implements AliasRepositoryContract {
   Future<AliasModel> createAlias({
     required String zoneId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
+    String actionType = 'forward',
   }) async {
     final response = await _performCreateRequest(
       zoneId: zoneId,
       aliasAddress: aliasAddress,
       destination: destination,
+      actionType: actionType,
     );
     _validateResponse(response);
 
@@ -70,8 +72,9 @@ class AliasRepository implements AliasRepositoryContract {
     required String zoneId,
     required String ruleId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
     required bool isEnabled,
+    String actionType = 'forward',
   }) async {
     final response = await _performUpdateRequest(
       zoneId: zoneId,
@@ -79,6 +82,7 @@ class AliasRepository implements AliasRepositoryContract {
       aliasAddress: aliasAddress,
       destination: destination,
       isEnabled: isEnabled,
+      actionType: actionType,
     );
     _validateResponse(response);
 
@@ -124,7 +128,8 @@ class AliasRepository implements AliasRepositoryContract {
   Future<http.Response> _performCreateRequest({
     required String zoneId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
+    required String actionType,
   }) async {
     try {
       return await apiClient.post(
@@ -137,10 +142,10 @@ class AliasRepository implements AliasRepositoryContract {
             {'type': 'literal', 'field': 'to', 'value': aliasAddress},
           ],
           'actions': [
-            {
-              'type': 'forward',
-              'value': [destination],
-            },
+            _buildActionPayload(
+              actionType: actionType,
+              destination: destination,
+            ),
           ],
           'enabled': true,
         }),
@@ -154,8 +159,9 @@ class AliasRepository implements AliasRepositoryContract {
     required String zoneId,
     required String ruleId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
     required bool isEnabled,
+    required String actionType,
   }) async {
     try {
       return await apiClient.put(
@@ -168,10 +174,10 @@ class AliasRepository implements AliasRepositoryContract {
             {'type': 'literal', 'field': 'to', 'value': aliasAddress},
           ],
           'actions': [
-            {
-              'type': 'forward',
-              'value': [destination],
-            },
+            _buildActionPayload(
+              actionType: actionType,
+              destination: destination,
+            ),
           ],
           'enabled': isEnabled,
         }),
@@ -179,6 +185,24 @@ class AliasRepository implements AliasRepositoryContract {
     } catch (_) {
       throw const AuthFailure.network();
     }
+  }
+
+  Map<String, dynamic> _buildActionPayload({
+    required String actionType,
+    required String? destination,
+  }) {
+    if (actionType == 'drop') {
+      return const {'type': 'drop'};
+    }
+
+    if (destination == null || destination.isEmpty) {
+      throw const AuthFailure.network();
+    }
+
+    return {
+      'type': 'forward',
+      'value': [destination],
+    };
   }
 
   Future<http.Response> _performDeleteRequest({
@@ -258,15 +282,17 @@ abstract class AliasRepositoryContract {
   Future<AliasModel> createAlias({
     required String zoneId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
+    String actionType,
   });
 
   Future<AliasModel> updateAlias({
     required String zoneId,
     required String ruleId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
     required bool isEnabled,
+    String actionType,
   });
 
   Future<void> deleteAlias({required String zoneId, required String ruleId});

@@ -5,6 +5,8 @@ import 'package:bariskode_cf_email/features/aliases/data/alias_repository.dart';
 import 'package:bariskode_cf_email/features/aliases/presentation/pages/alias_generator_page.dart';
 import 'package:bariskode_cf_email/features/auth/domain/entities/auth_failure.dart';
 import 'package:bariskode_cf_email/features/auth/domain/repositories/auth_repository.dart';
+import 'package:bariskode_cf_email/features/destinations/data/destination_repository.dart';
+import 'package:bariskode_cf_email/features/destinations/domain/entities/destination_email.dart';
 import 'package:bariskode_cf_email/features/domains/data/domain_repository.dart';
 import 'package:bariskode_cf_email/features/domains/domain/entities/domain_summary.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
@@ -12,6 +14,16 @@ import 'package:bariskode_cf_email/shared/models/alias_model.dart';
 import 'package:bariskode_cf_email/shared/models/api_exception.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+Future<void> _selectVerifiedDestination(
+  WidgetTester tester,
+  String email,
+) async {
+  await tester.tap(find.byType(DropdownButtonFormField<String>));
+  await tester.pumpAndSettle();
+  await tester.tap(find.textContaining(email).last);
+  await tester.pumpAndSettle();
+}
 
 void main() {
   testWidgets('shows generated alias preview and regenerate changes it', (
@@ -23,6 +35,12 @@ void main() {
           domainName: 'example.com',
           zoneId: 'zone-1',
           aliasRepository: _FakeAliasRepository(),
+          destinationRepository: _FakeDestinationRepository(),
+          selectedDomain: const DomainSummary(
+            id: 'zone-1',
+            name: 'example.com',
+            accountId: 'acc-1',
+          ),
           authRepository: _FakeAuthRepository(),
           domainContext: DomainContext(repository: _FakeDomainRepository()),
           aliasGenerator: _SequenceAliasGenerator([
@@ -59,6 +77,12 @@ void main() {
           domainName: 'example.com',
           zoneId: 'zone-1',
           aliasRepository: repository,
+          destinationRepository: _FakeDestinationRepository(),
+          selectedDomain: const DomainSummary(
+            id: 'zone-1',
+            name: 'example.com',
+            accountId: 'acc-1',
+          ),
           authRepository: _FakeAuthRepository(),
           domainContext: DomainContext(repository: _FakeDomainRepository()),
           aliasGenerator: _SequenceAliasGenerator(['github-a1b2c']),
@@ -72,10 +96,7 @@ void main() {
     );
     await tester.tap(find.text(AppStrings.aliasGeneratorRegenerateButton));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, AppStrings.createAliasDestinationLabel),
-      'DEST@example.net',
-    );
+    await _selectVerifiedDestination(tester, 'dest@example.net');
     await tester.tap(find.text(AppStrings.aliasGeneratorCreateButton));
     await tester.pumpAndSettle();
 
@@ -97,6 +118,12 @@ void main() {
           domainName: 'example.com',
           zoneId: 'zone-1',
           aliasRepository: repository,
+          destinationRepository: _FakeDestinationRepository(),
+          selectedDomain: const DomainSummary(
+            id: 'zone-1',
+            name: 'example.com',
+            accountId: 'acc-1',
+          ),
           authRepository: _FakeAuthRepository(),
           domainContext: DomainContext(repository: _FakeDomainRepository()),
           aliasGenerator: _SequenceAliasGenerator([
@@ -116,10 +143,7 @@ void main() {
 
     expect(find.text('github-a1b2c@example.com'), findsOneWidget);
 
-    await tester.enterText(
-      find.widgetWithText(TextField, AppStrings.createAliasDestinationLabel),
-      'dest@example.net',
-    );
+    await _selectVerifiedDestination(tester, 'dest@example.net');
     await tester.tap(find.text(AppStrings.aliasGeneratorCreateButton));
     await tester.pumpAndSettle();
 
@@ -138,6 +162,12 @@ void main() {
           domainName: 'example.com',
           zoneId: 'zone-1',
           aliasRepository: _FakeAliasRepository(),
+          destinationRepository: _FakeDestinationRepository(),
+          selectedDomain: const DomainSummary(
+            id: 'zone-1',
+            name: 'example.com',
+            accountId: 'acc-1',
+          ),
           authRepository: _FakeAuthRepository(),
           domainContext: DomainContext(repository: _FakeDomainRepository()),
           aliasGenerator: _SequenceAliasGenerator(['github-a1b2c']),
@@ -178,6 +208,12 @@ void main() {
           aliasRepository: _FakeAliasRepository(
             createError: const ApiException('Alias already exists.'),
           ),
+          destinationRepository: _FakeDestinationRepository(),
+          selectedDomain: const DomainSummary(
+            id: 'zone-1',
+            name: 'example.com',
+            accountId: 'acc-1',
+          ),
           authRepository: _FakeAuthRepository(),
           domainContext: DomainContext(repository: _FakeDomainRepository()),
           aliasGenerator: _SequenceAliasGenerator(['github-a1b2c']),
@@ -191,10 +227,7 @@ void main() {
     );
     await tester.tap(find.text(AppStrings.aliasGeneratorRegenerateButton));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, AppStrings.createAliasDestinationLabel),
-      'dest@example.net',
-    );
+    await _selectVerifiedDestination(tester, 'dest@example.net');
     await tester.tap(find.text(AppStrings.aliasGeneratorCreateButton));
     await tester.pumpAndSettle();
 
@@ -213,6 +246,12 @@ void main() {
           aliasRepository: _FakeAliasRepository(
             createAuthFailure: const AuthFailure.network(),
           ),
+          destinationRepository: _FakeDestinationRepository(),
+          selectedDomain: const DomainSummary(
+            id: 'zone-1',
+            name: 'example.com',
+            accountId: 'acc-1',
+          ),
           authRepository: authRepository,
           domainContext: DomainContext(repository: _FakeDomainRepository()),
           aliasGenerator: _SequenceAliasGenerator(['github-a1b2c']),
@@ -226,10 +265,7 @@ void main() {
     );
     await tester.tap(find.text(AppStrings.aliasGeneratorRegenerateButton));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, AppStrings.createAliasDestinationLabel),
-      'dest@example.net',
-    );
+    await _selectVerifiedDestination(tester, 'dest@example.net');
     await tester.tap(find.text(AppStrings.aliasGeneratorCreateButton));
     await tester.pumpAndSettle();
 
@@ -251,6 +287,12 @@ void main() {
           aliasRepository: _FakeAliasRepository(
             createAuthFailure: const AuthFailure.invalidToken(),
           ),
+          destinationRepository: _FakeDestinationRepository(),
+          selectedDomain: const DomainSummary(
+            id: 'zone-1',
+            name: 'example.com',
+            accountId: 'acc-1',
+          ),
           authRepository: authRepository,
           domainContext: DomainContext(repository: _FakeDomainRepository()),
           aliasGenerator: _SequenceAliasGenerator(['github-a1b2c']),
@@ -264,10 +306,7 @@ void main() {
     );
     await tester.tap(find.text(AppStrings.aliasGeneratorRegenerateButton));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, AppStrings.createAliasDestinationLabel),
-      'dest@example.net',
-    );
+    await _selectVerifiedDestination(tester, 'dest@example.net');
     await tester.tap(find.text(AppStrings.aliasGeneratorCreateButton));
     await tester.pumpAndSettle();
 
@@ -304,7 +343,8 @@ class _FakeAliasRepository implements AliasRepositoryContract {
   Future<AliasModel> createAlias({
     required String zoneId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
+    String actionType = 'forward',
   }) async {
     if (createAuthFailure != null) {
       throw createAuthFailure!;
@@ -318,14 +358,14 @@ class _FakeAliasRepository implements AliasRepositoryContract {
       _CreateAliasCall(
         zoneId: zoneId,
         aliasAddress: aliasAddress,
-        destination: destination,
+        destination: destination!,
       ),
     );
 
     return AliasModel(
       id: 'rule-1',
       address: aliasAddress,
-      destination: destination,
+      destination: destination!,
       isEnabled: true,
       isSupported: true,
     );
@@ -346,10 +386,34 @@ class _FakeAliasRepository implements AliasRepositoryContract {
     required String zoneId,
     required String ruleId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
     required bool isEnabled,
+    String actionType = 'forward',
   }) async {
     throw UnimplementedError();
+  }
+}
+
+class _FakeDestinationRepository implements DestinationRepositoryContract {
+  @override
+  Future<DestinationEmail> createDestination({
+    required String accountId,
+    required String email,
+  }) async {
+    return DestinationEmail(id: 'dest-1', email: email, isVerified: true);
+  }
+
+  @override
+  Future<List<DestinationEmail>> listDestinations({
+    required String accountId,
+  }) async {
+    return const [
+      DestinationEmail(
+        id: 'dest-1',
+        email: 'dest@example.net',
+        isVerified: true,
+      ),
+    ];
   }
 }
 

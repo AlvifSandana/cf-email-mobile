@@ -76,8 +76,16 @@ void main() {
           jsonEncode({
             'success': true,
             'result': [
-              {'id': '1', 'name': 'example.com'},
-              {'id': '2', 'name': 'startup.io'},
+              {
+                'id': '1',
+                'name': 'example.com',
+                'account': {'id': 'acc-1'},
+              },
+              {
+                'id': '2',
+                'name': 'startup.io',
+                'account': {'id': 'acc-2'},
+              },
             ],
           }),
           200,
@@ -90,6 +98,7 @@ void main() {
     expect(zones.length, 2);
     expect(zones.first.name, 'example.com');
     expect(zones.last.id, '2');
+    expect(zones.first.accountId, 'acc-1');
     expect(rawClient.lastRequest?.url.path, '/client/v4/zones');
     expect(rawClient.lastRequest?.url.queryParameters['per_page'], isNull);
     expect(rawClient.lastRequest?.headers['Authorization'], 'Bearer token-123');

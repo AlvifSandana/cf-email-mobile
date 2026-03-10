@@ -9,16 +9,19 @@ import 'package:http/http.dart' as http;
 class AnalyticsRepository implements AnalyticsRepositoryContract {
   const AnalyticsRepository({required this.apiClient});
 
+  static const int defaultPageSize = 20;
+
   static final Uri _graphqlUri = Uri.parse(
     'https://api.cloudflare.com/client/v4/graphql',
   );
 
   static const String _activityQuery = r'''
-query EmailRoutingActivity($zoneTag: String!, $limit: Int!) {
+query EmailRoutingActivity($zoneTag: String!, $limit: Int!, $before: DateTime) {
   viewer {
     zones(filter: { zoneTag: $zoneTag }) {
       emailRouting: emailRoutingAnalyticsAdaptiveGroups(
         limit: $limit
+        filter: { datetime_lt: $before }
         orderBy: [datetime_DESC]
       ) {
         dimensions {
@@ -38,14 +41,16 @@ query EmailRoutingActivity($zoneTag: String!, $limit: Int!) {
   final ApiClient apiClient;
 
   @override
-  Future<List<ActivityLogEntry>> listActivityLogs({
+  Future<ActivityLogPage> listActivityLogs({
     required String zoneId,
-    int limit = 20,
+    int limit = defaultPageSize,
+    DateTime? before,
   }) async {
     final safeLimit = limit.clamp(1, 100);
     final response = await _performActivityRequest(
       zoneId: zoneId,
       limit: safeLimit,
+      before: before,
     );
     final body = _parseBody(response);
     _validateResponse(response, body);
@@ -61,7 +66,7 @@ query EmailRoutingActivity($zoneTag: String!, $limit: Int!) {
 
     final zones = viewer['zones'];
     if (zones is! List || zones.isEmpty) {
-      return const [];
+      return const ActivityLogPage(entries: [], hasMore: false);
     }
 
     final zone = zones.first;
@@ -82,12 +87,22 @@ query EmailRoutingActivity($zoneTag: String!, $limit: Int!) {
       }
     }
 
-    return List<ActivityLogEntry>.unmodifiable(entries);
+    entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final nextBefore = entries.length < safeLimit
+        ? null
+        : entries.last.timestamp.subtract(const Duration(milliseconds: 1));
+
+    return ActivityLogPage(
+      entries: List<ActivityLogEntry>.unmodifiable(entries),
+      hasMore: entries.length == safeLimit,
+      nextBefore: nextBefore,
+    );
   }
 
   Future<http.Response> _performActivityRequest({
     required String zoneId,
     required int limit,
+    DateTime? before,
   }) async {
     try {
       return await apiClient.post(
@@ -95,7 +110,11 @@ query EmailRoutingActivity($zoneTag: String!, $limit: Int!) {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'query': _activityQuery,
-          'variables': {'zoneTag': zoneId, 'limit': limit},
+          'variables': {
+            'zoneTag': zoneId,
+            'limit': limit,
+            'before': before?.toUtc().toIso8601String(),
+          },
         }),
       );
     } catch (_) {
@@ -238,8 +257,21 @@ query EmailRoutingActivity($zoneTag: String!, $limit: Int!) {
 }
 
 abstract class AnalyticsRepositoryContract {
-  Future<List<ActivityLogEntry>> listActivityLogs({
+  Future<ActivityLogPage> listActivityLogs({
     required String zoneId,
     int limit,
+    DateTime? before,
   });
+}
+
+class ActivityLogPage {
+  const ActivityLogPage({
+    required this.entries,
+    required this.hasMore,
+    this.nextBefore,
+  });
+
+  final List<ActivityLogEntry> entries;
+  final bool hasMore;
+  final DateTime? nextBefore;
 }

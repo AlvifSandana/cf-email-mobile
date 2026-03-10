@@ -8,6 +8,7 @@ import 'package:bariskode_cf_email/features/auth/data/auth_repository_impl.dart'
 import 'package:bariskode_cf_email/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:bariskode_cf_email/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:bariskode_cf_email/features/catchall/data/catchall_repository.dart';
+import 'package:bariskode_cf_email/features/destinations/data/destination_repository.dart';
 import 'package:bariskode_cf_email/features/domains/data/domain_repository.dart';
 import 'package:bariskode_cf_email/features/domains/data/selected_domain_store.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
@@ -38,6 +39,7 @@ void main() {
   );
   final analyticsRepository = AnalyticsRepository(apiClient: apiClient);
   final aliasRepository = AliasRepository(apiClient: apiClient);
+  final destinationRepository = DestinationRepository(apiClient: apiClient);
   final catchAllRepository = CatchAllRepository(
     analyticsRepository: analyticsRepository,
     aliasRepository: aliasRepository,
@@ -54,6 +56,7 @@ void main() {
       aliasRepository: aliasRepository,
       catchAllRepository: catchAllRepository,
       analyticsRepository: analyticsRepository,
+      destinationRepository: destinationRepository,
     ),
   );
 }

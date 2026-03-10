@@ -28,16 +28,14 @@ class EditAliasController extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool validate({required String destination}) {
-    final normalizedDestination = destination.trim();
+  bool validate({required String? destination}) {
+    final normalizedDestination = destination?.trim() ?? '';
 
     _destinationError = null;
     _submitError = null;
 
     if (normalizedDestination.isEmpty) {
       _destinationError = AppStrings.createAliasDestinationRequired;
-    } else if (!EmailValidator.isValid(normalizedDestination)) {
-      _destinationError = AppStrings.createAliasDestinationInvalid;
     }
 
     notifyListeners();
@@ -49,7 +47,7 @@ class EditAliasController extends ChangeNotifier {
     required String ruleId,
     required String aliasAddress,
     required bool isEnabled,
-    required String destination,
+    required String? destination,
   }) async {
     if (!validate(destination: destination)) {
       return const EditAliasResult.validationFailed();
@@ -64,7 +62,7 @@ class EditAliasController extends ChangeNotifier {
         zoneId: zoneId,
         ruleId: ruleId,
         aliasAddress: aliasAddress,
-        destination: destination.trim().toLowerCase(),
+        destination: destination!.trim().toLowerCase(),
         isEnabled: isEnabled,
       );
 

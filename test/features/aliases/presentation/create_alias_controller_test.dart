@@ -22,21 +22,21 @@ void main() {
     );
   });
 
-  test('validates alias local part and destination format', () {
+  test('validates alias local part and destination presence', () {
     final controller = CreateAliasController(
       aliasRepository: FakeAliasRepository(),
     );
 
     final isValid = controller.validate(
       aliasLocalPart: 'sales@example.com',
-      destination: 'not-an-email',
+      destination: ' ',
     );
 
     expect(isValid, isFalse);
     expect(controller.aliasError, AppStrings.createAliasAliasLocalPartOnly);
     expect(
       controller.destinationError,
-      AppStrings.createAliasDestinationInvalid,
+      AppStrings.createAliasDestinationRequired,
     );
   });
 
@@ -120,7 +120,8 @@ class FakeAliasRepository implements AliasRepositoryContract {
   Future<AliasModel> createAlias({
     required String zoneId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
+    String actionType = 'forward',
   }) async {
     if (createAuthFailure != null) {
       throw createAuthFailure!;
@@ -134,14 +135,14 @@ class FakeAliasRepository implements AliasRepositoryContract {
       CreateCall(
         zoneId: zoneId,
         aliasAddress: aliasAddress,
-        destination: destination,
+        destination: destination!,
       ),
     );
 
     return AliasModel(
       id: 'rule-1',
       address: aliasAddress,
-      destination: destination,
+      destination: destination!,
       isEnabled: true,
       isSupported: true,
     );
@@ -156,8 +157,9 @@ class FakeAliasRepository implements AliasRepositoryContract {
     required String zoneId,
     required String ruleId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
     required bool isEnabled,
+    String actionType = 'forward',
   }) async {
     throw UnimplementedError();
   }

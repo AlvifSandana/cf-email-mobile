@@ -21,18 +21,15 @@ void main() {
     );
   });
 
-  test('validates invalid destination format', () {
+  test('accepts any non-empty destination value from verified picker', () {
     final controller = EditAliasController(
       aliasRepository: FakeAliasRepository(),
     );
 
     final isValid = controller.validate(destination: 'not-an-email');
 
-    expect(isValid, isFalse);
-    expect(
-      controller.destinationError,
-      AppStrings.createAliasDestinationInvalid,
-    );
+    expect(isValid, isTrue);
+    expect(controller.destinationError, isNull);
   });
 
   test('submits normalized destination and preserves alias metadata', () async {
@@ -105,7 +102,8 @@ class FakeAliasRepository implements AliasRepositoryContract {
   Future<AliasModel> createAlias({
     required String zoneId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
+    String actionType = 'forward',
   }) async {
     throw UnimplementedError();
   }
@@ -119,8 +117,9 @@ class FakeAliasRepository implements AliasRepositoryContract {
     required String zoneId,
     required String ruleId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
     required bool isEnabled,
+    String actionType = 'forward',
   }) async {
     if (updateAuthFailure != null) {
       throw updateAuthFailure!;
@@ -135,7 +134,7 @@ class FakeAliasRepository implements AliasRepositoryContract {
         zoneId: zoneId,
         ruleId: ruleId,
         aliasAddress: aliasAddress,
-        destination: destination,
+        destination: destination!,
         isEnabled: isEnabled,
       ),
     );
@@ -143,7 +142,7 @@ class FakeAliasRepository implements AliasRepositoryContract {
     return AliasModel(
       id: ruleId,
       address: aliasAddress,
-      destination: destination,
+      destination: destination!,
       isEnabled: isEnabled,
       isSupported: true,
     );

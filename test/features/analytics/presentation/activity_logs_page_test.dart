@@ -99,7 +99,7 @@ void main() {
         dmarc: 'none',
         timestamp: DateTime.parse(
           '2026-03-09T10:15:00Z',
-        ).add(Duration(minutes: index)),
+        ).subtract(Duration(minutes: index)),
       ),
     );
 
@@ -140,9 +140,9 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
-
     expect(find.text('alias-24@example.com'), findsOneWidget);
-    expect(analyticsRepository.requestedLimits, [20, 40]);
+    expect(analyticsRepository.requestedLimits, [20, 20]);
+    expect(analyticsRepository.requestedBeforeValues, [null, isNotNull]);
   });
 
   testWidgets('shows retryable error on network failure without logout', (
@@ -211,11 +211,10 @@ void main() {
     );
 
     await tester.tap(find.text(AppStrings.activityLoadMoreButton));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(find.text(AppStrings.activityLoadMoreError), findsOneWidget);
-    expect(analyticsRepository.requestedLimits, [20, 40]);
+    expect(analyticsRepository.requestedLimits, [20, 20]);
   });
 
   testWidgets('invalid token during load more invalidates session', (
@@ -292,8 +291,7 @@ void main() {
     );
 
     await tester.tap(find.text(AppStrings.activityLoadMoreButton));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
 
     expect(find.text(AppStrings.activityLoadMoreError), findsOneWidget);
     expect(authRepository.logoutAttempts, 0);
@@ -340,19 +338,39 @@ class FakeAnalyticsRepository implements AnalyticsRepositoryContract {
   final List<ActivityLogEntry> logs;
   final Exception? error;
   final List<int> requestedLimits = <int>[];
+  final List<DateTime?> requestedBeforeValues = <DateTime?>[];
 
   @override
-  Future<List<ActivityLogEntry>> listActivityLogs({
+  Future<ActivityLogPage> listActivityLogs({
     required String zoneId,
     int limit = 20,
+    DateTime? before,
   }) async {
     requestedLimits.add(limit);
+    requestedBeforeValues.add(before);
 
     if (error != null) {
       throw error!;
     }
 
-    return List<ActivityLogEntry>.unmodifiable(logs.take(limit));
+    final startIndex = before == null
+        ? 0
+        : logs.indexWhere((entry) => entry.timestamp.isBefore(before));
+    final safeStartIndex = startIndex < 0 ? logs.length : startIndex;
+    final pageEntries = logs
+        .skip(safeStartIndex)
+        .take(limit)
+        .toList(growable: false);
+
+    return ActivityLogPage(
+      entries: List<ActivityLogEntry>.unmodifiable(pageEntries),
+      hasMore: safeStartIndex + pageEntries.length < logs.length,
+      nextBefore: pageEntries.length < limit
+          ? null
+          : pageEntries.last.timestamp.subtract(
+              const Duration(milliseconds: 1),
+            ),
+    );
   }
 }
 
@@ -361,17 +379,18 @@ class FailingLoadMoreAnalyticsRepository
   final List<int> requestedLimits = <int>[];
 
   @override
-  Future<List<ActivityLogEntry>> listActivityLogs({
+  Future<ActivityLogPage> listActivityLogs({
     required String zoneId,
     int limit = 20,
+    DateTime? before,
   }) async {
     requestedLimits.add(limit);
 
-    if (limit > 20) {
+    if (before != null) {
       throw Exception('load more failed');
     }
 
-    return List<ActivityLogEntry>.generate(
+    final entries = List<ActivityLogEntry>.generate(
       25,
       (index) => ActivityLogEntry(
         address: 'alias-$index@example.com',
@@ -381,24 +400,33 @@ class FailingLoadMoreAnalyticsRepository
         dmarc: 'none',
         timestamp: DateTime.parse(
           '2026-03-09T10:15:00Z',
-        ).add(Duration(minutes: index)),
+        ).subtract(Duration(minutes: index)),
       ),
     ).take(20).toList(growable: false);
+
+    return ActivityLogPage(
+      entries: entries,
+      hasMore: true,
+      nextBefore: entries.last.timestamp.subtract(
+        const Duration(milliseconds: 1),
+      ),
+    );
   }
 }
 
 class InvalidLoadMoreAnalyticsRepository
     implements AnalyticsRepositoryContract {
   @override
-  Future<List<ActivityLogEntry>> listActivityLogs({
+  Future<ActivityLogPage> listActivityLogs({
     required String zoneId,
     int limit = 20,
+    DateTime? before,
   }) async {
-    if (limit > 20) {
+    if (before != null) {
       throw const AuthFailure.invalidToken();
     }
 
-    return List<ActivityLogEntry>.generate(
+    final entries = List<ActivityLogEntry>.generate(
       25,
       (index) => ActivityLogEntry(
         address: 'alias-$index@example.com',
@@ -408,24 +436,33 @@ class InvalidLoadMoreAnalyticsRepository
         dmarc: 'none',
         timestamp: DateTime.parse(
           '2026-03-09T10:15:00Z',
-        ).add(Duration(minutes: index)),
+        ).subtract(Duration(minutes: index)),
       ),
     ).take(20).toList(growable: false);
+
+    return ActivityLogPage(
+      entries: entries,
+      hasMore: true,
+      nextBefore: entries.last.timestamp.subtract(
+        const Duration(milliseconds: 1),
+      ),
+    );
   }
 }
 
 class AuthFailureLoadMoreAnalyticsRepository
     implements AnalyticsRepositoryContract {
   @override
-  Future<List<ActivityLogEntry>> listActivityLogs({
+  Future<ActivityLogPage> listActivityLogs({
     required String zoneId,
     int limit = 20,
+    DateTime? before,
   }) async {
-    if (limit > 20) {
+    if (before != null) {
       throw const AuthFailure.network();
     }
 
-    return List<ActivityLogEntry>.generate(
+    final entries = List<ActivityLogEntry>.generate(
       25,
       (index) => ActivityLogEntry(
         address: 'alias-$index@example.com',
@@ -435,9 +472,17 @@ class AuthFailureLoadMoreAnalyticsRepository
         dmarc: 'none',
         timestamp: DateTime.parse(
           '2026-03-09T10:15:00Z',
-        ).add(Duration(minutes: index)),
+        ).subtract(Duration(minutes: index)),
       ),
     ).take(20).toList(growable: false);
+
+    return ActivityLogPage(
+      entries: entries,
+      hasMore: true,
+      nextBefore: entries.last.timestamp.subtract(
+        const Duration(milliseconds: 1),
+      ),
+    );
   }
 }
 

@@ -6,6 +6,7 @@ import 'package:bariskode_cf_email/features/auth/domain/repositories/auth_reposi
 import 'package:bariskode_cf_email/features/aliases/data/alias_repository.dart';
 import 'package:bariskode_cf_email/features/catchall/data/catchall_repository.dart';
 import 'package:bariskode_cf_email/features/auth/presentation/login_page.dart';
+import 'package:bariskode_cf_email/features/destinations/data/destination_repository.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_selector_page.dart';
 import 'package:bariskode_cf_email/shared/utils/session_invalidator.dart';
@@ -22,6 +23,7 @@ class BariskodeCfEmailApp extends StatelessWidget {
     required this.aliasRepository,
     required this.catchAllRepository,
     required this.analyticsRepository,
+    required this.destinationRepository,
   });
 
   final AuthRepository authRepository;
@@ -29,6 +31,7 @@ class BariskodeCfEmailApp extends StatelessWidget {
   final AliasRepositoryContract aliasRepository;
   final CatchAllRepositoryContract catchAllRepository;
   final AnalyticsRepositoryContract analyticsRepository;
+  final DestinationRepositoryContract destinationRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +54,7 @@ class BariskodeCfEmailApp extends StatelessWidget {
             aliasRepository: aliasRepository,
             catchAllRepository: catchAllRepository,
             analyticsRepository: analyticsRepository,
+            destinationRepository: destinationRepository,
           ),
         ),
         AppRoutes.domainSelector: (_) => DomainSelectorPage(

@@ -46,12 +46,21 @@ class CloudflareAuthApi {
 
           final id = item['id'];
           final name = item['name'];
+          final account = item['account'];
+          final accountId = account is Map<String, dynamic>
+              ? account['id']
+              : null;
 
-          if (id is! String || name is! String || id.isEmpty || name.isEmpty) {
+          if (id is! String ||
+              name is! String ||
+              accountId is! String ||
+              id.isEmpty ||
+              name.isEmpty ||
+              accountId.isEmpty) {
             throw const AuthFailure.network();
           }
 
-          return DomainSummary(id: id, name: name);
+          return DomainSummary(id: id, name: name, accountId: accountId);
         })
         .toList(growable: false);
   }

@@ -48,13 +48,18 @@ void main() {
 
       final result = await repository.listActivityLogs(zoneId: 'zone-1');
 
-      expect(result, hasLength(1));
-      expect(result.single.address, 'sales@example.com');
-      expect(result.single.status, 'forwarded');
-      expect(result.single.spf, 'pass');
-      expect(result.single.dkim, 'pass');
-      expect(result.single.dmarc, 'none');
-      expect(result.single.timestamp, DateTime.parse('2026-03-09T10:15:00Z'));
+      expect(result.entries, hasLength(1));
+      expect(result.entries.single.address, 'sales@example.com');
+      expect(result.entries.single.status, 'forwarded');
+      expect(result.entries.single.spf, 'pass');
+      expect(result.entries.single.dkim, 'pass');
+      expect(result.entries.single.dmarc, 'none');
+      expect(
+        result.entries.single.timestamp,
+        DateTime.parse('2026-03-09T10:15:00Z'),
+      );
+      expect(result.hasMore, isFalse);
+      expect(result.nextBefore, isNull);
       expect(
         rawClient.lastRequest?.url.toString(),
         'https://api.cloudflare.com/client/v4/graphql',
@@ -86,7 +91,9 @@ void main() {
         ),
       );
 
-      expect(await repository.listActivityLogs(zoneId: 'zone-1'), isEmpty);
+      final result = await repository.listActivityLogs(zoneId: 'zone-1');
+      expect(result.entries, isEmpty);
+      expect(result.hasMore, isFalse);
     });
 
     test('maps 401 to invalid token', () async {
@@ -262,8 +269,8 @@ void main() {
 
       final result = await repository.listActivityLogs(zoneId: 'zone-1');
 
-      expect(result, hasLength(1));
-      expect(result.single.address, 'sales@example.com');
+      expect(result.entries, hasLength(1));
+      expect(result.entries.single.address, 'sales@example.com');
     });
   });
 }

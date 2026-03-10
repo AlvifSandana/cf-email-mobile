@@ -147,15 +147,20 @@ class FakeAnalyticsRepository implements AnalyticsRepositoryContract {
   final Exception? error;
 
   @override
-  Future<List<ActivityLogEntry>> listActivityLogs({
+  Future<ActivityLogPage> listActivityLogs({
     required String zoneId,
     int limit = 20,
+    DateTime? before,
   }) async {
     if (error != null) {
       throw error!;
     }
 
-    return List<ActivityLogEntry>.unmodifiable(logs);
+    return ActivityLogPage(
+      entries: List<ActivityLogEntry>.unmodifiable(logs),
+      hasMore: false,
+      nextBefore: null,
+    );
   }
 }
 
@@ -172,7 +177,8 @@ class FakeAliasRepository implements AliasRepositoryContract {
   Future<AliasModel> createAlias({
     required String zoneId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
+    String actionType = 'forward',
   }) {
     throw UnimplementedError();
   }
@@ -187,8 +193,9 @@ class FakeAliasRepository implements AliasRepositoryContract {
     required String zoneId,
     required String ruleId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
     required bool isEnabled,
+    String actionType = 'forward',
   }) {
     throw UnimplementedError();
   }

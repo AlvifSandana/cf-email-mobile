@@ -1,9 +1,11 @@
 import 'package:bariskode_cf_email/core/constants/app_strings.dart';
 import 'package:bariskode_cf_email/core/utils/alias_generator.dart';
-import 'package:bariskode_cf_email/core/utils/validators/email_validator.dart';
 import 'package:bariskode_cf_email/features/aliases/data/alias_repository.dart';
 import 'package:bariskode_cf_email/features/auth/domain/entities/auth_failure.dart';
 import 'package:bariskode_cf_email/features/auth/domain/repositories/auth_repository.dart';
+import 'package:bariskode_cf_email/features/destinations/data/destination_repository.dart';
+import 'package:bariskode_cf_email/features/destinations/presentation/widgets/destination_email_field.dart';
+import 'package:bariskode_cf_email/features/domains/domain/entities/domain_summary.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
 import 'package:bariskode_cf_email/shared/models/api_exception.dart';
 import 'package:bariskode_cf_email/shared/utils/session_invalidator.dart';
@@ -15,6 +17,8 @@ class AliasGeneratorPage extends StatefulWidget {
     required this.domainName,
     required this.zoneId,
     required this.aliasRepository,
+    required this.destinationRepository,
+    required this.selectedDomain,
     required this.authRepository,
     required this.domainContext,
     AliasGenerator? aliasGenerator,
@@ -23,6 +27,8 @@ class AliasGeneratorPage extends StatefulWidget {
   final String domainName;
   final String zoneId;
   final AliasRepositoryContract aliasRepository;
+  final DestinationRepositoryContract destinationRepository;
+  final DomainSummary selectedDomain;
   final AuthRepository authRepository;
   final DomainContext domainContext;
   final AliasGenerator aliasGenerator;
@@ -33,18 +39,17 @@ class AliasGeneratorPage extends StatefulWidget {
 
 class _AliasGeneratorPageState extends State<AliasGeneratorPage> {
   final TextEditingController _serviceController = TextEditingController();
-  final TextEditingController _destinationController = TextEditingController();
 
   String? _serviceError;
   String? _destinationError;
   String? _submitError;
   String? _generatedAlias;
+  String? _selectedDestination;
   bool _isSubmitting = false;
 
   @override
   void dispose() {
     _serviceController.dispose();
-    _destinationController.dispose();
     super.dispose();
   }
 
@@ -71,7 +76,7 @@ class _AliasGeneratorPageState extends State<AliasGeneratorPage> {
     final normalizedService = AliasGenerator.normalizeService(
       _serviceController.text,
     );
-    final normalizedDestination = _destinationController.text.trim();
+    final normalizedDestination = _selectedDestination?.trim() ?? '';
 
     _serviceError = null;
     _destinationError = null;
@@ -82,9 +87,7 @@ class _AliasGeneratorPageState extends State<AliasGeneratorPage> {
     }
 
     if (normalizedDestination.isEmpty) {
-      _destinationError = AppStrings.createAliasDestinationRequired;
-    } else if (!EmailValidator.isValid(normalizedDestination)) {
-      _destinationError = AppStrings.createAliasDestinationInvalid;
+      _destinationError = AppStrings.destinationRequired;
     }
 
     setState(() {});
@@ -113,7 +116,7 @@ class _AliasGeneratorPageState extends State<AliasGeneratorPage> {
       await widget.aliasRepository.createAlias(
         zoneId: widget.zoneId,
         aliasAddress: aliasAddress,
-        destination: _destinationController.text.trim().toLowerCase(),
+        destination: _selectedDestination!.trim().toLowerCase(),
       );
 
       if (!mounted) {
@@ -164,6 +167,17 @@ class _AliasGeneratorPageState extends State<AliasGeneratorPage> {
     }
   }
 
+  Future<void> _handleDestinationAuthFailure(AuthFailure failure) async {
+    if (failure.type == AuthFailureType.invalidToken ||
+        failure.type == AuthFailureType.insufficientPermissions) {
+      await invalidateSessionAndReturnToLogin(
+        context: context,
+        authRepository: widget.authRepository,
+        domainContext: widget.domainContext,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -195,24 +209,27 @@ class _AliasGeneratorPageState extends State<AliasGeneratorPage> {
               ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _destinationController,
+            DestinationEmailField(
+              selectedDomain: widget.selectedDomain,
+              destinationRepository: widget.destinationRepository,
               enabled: !_isSubmitting,
-              keyboardType: TextInputType.emailAddress,
-              onChanged: (_) {
+              initialValue: _selectedDestination,
+              errorText: _destinationError,
+              onAuthFailure: _handleDestinationAuthFailure,
+              onChanged: (value) {
                 if (_destinationError != null || _submitError != null) {
                   setState(() {
                     _destinationError = null;
                     _submitError = null;
+                    _selectedDestination = value;
                   });
+                  return;
                 }
+
+                setState(() {
+                  _selectedDestination = value;
+                });
               },
-              decoration: InputDecoration(
-                labelText: AppStrings.createAliasDestinationLabel,
-                hintText: AppStrings.createAliasDestinationHint,
-                border: const OutlineInputBorder(),
-                errorText: _destinationError,
-              ),
             ),
             const SizedBox(height: 24),
             OutlinedButton.icon(

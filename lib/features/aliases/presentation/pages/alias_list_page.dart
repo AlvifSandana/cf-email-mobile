@@ -5,6 +5,8 @@ import 'package:bariskode_cf_email/features/aliases/presentation/edit_alias_cont
 import 'package:bariskode_cf_email/features/aliases/presentation/pages/alias_generator_page.dart';
 import 'package:bariskode_cf_email/features/auth/domain/entities/auth_failure.dart';
 import 'package:bariskode_cf_email/features/auth/domain/repositories/auth_repository.dart';
+import 'package:bariskode_cf_email/features/destinations/data/destination_repository.dart';
+import 'package:bariskode_cf_email/features/destinations/presentation/widgets/destination_email_field.dart';
 import 'package:bariskode_cf_email/features/domains/domain/entities/domain_summary.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
 import 'package:bariskode_cf_email/shared/models/alias_model.dart';
@@ -18,11 +20,13 @@ class AliasListPage extends StatefulWidget {
     required this.authRepository,
     required this.domainContext,
     required this.aliasRepository,
+    required this.destinationRepository,
   });
 
   final AuthRepository authRepository;
   final DomainContext domainContext;
   final AliasRepositoryContract aliasRepository;
+  final DestinationRepositoryContract destinationRepository;
 
   @override
   State<AliasListPage> createState() => _AliasListPageState();
@@ -255,7 +259,9 @@ class _AliasListPageState extends State<AliasListPage> {
                 title: Text(alias.address),
                 subtitle: Text(
                   alias.isSupported
-                      ? alias.destination
+                      ? alias.isBlocked
+                            ? '${alias.destination} · ${AppStrings.catchAllBlockButton}'
+                            : alias.destination
                       : AppStrings.aliasUnsupportedRule,
                 ),
                 trailing: Row(
@@ -278,16 +284,17 @@ class _AliasListPageState extends State<AliasListPage> {
                                 isEnabled: value,
                               ),
                       ),
-                      IconButton(
-                        onPressed: _mutatingAliasIds.contains(alias.id)
-                            ? null
-                            : () => _openEditAliasSheet(
-                                selectedDomain: selectedDomain,
-                                alias: alias,
-                              ),
-                        icon: const Icon(Icons.edit_outlined),
-                        tooltip: AppStrings.editAliasTitle,
-                      ),
+                      if (!alias.isBlocked)
+                        IconButton(
+                          onPressed: _mutatingAliasIds.contains(alias.id)
+                              ? null
+                              : () => _openEditAliasSheet(
+                                  selectedDomain: selectedDomain,
+                                  alias: alias,
+                                ),
+                          icon: const Icon(Icons.edit_outlined),
+                          tooltip: AppStrings.editAliasTitle,
+                        ),
                       IconButton(
                         onPressed: _mutatingAliasIds.contains(alias.id)
                             ? null
@@ -318,6 +325,8 @@ class _AliasListPageState extends State<AliasListPage> {
           domainName: selectedDomain.name,
           zoneId: selectedDomain.id,
           aliasRepository: widget.aliasRepository,
+          destinationRepository: widget.destinationRepository,
+          selectedDomain: selectedDomain,
           authRepository: widget.authRepository,
           domainContext: widget.domainContext,
         );
@@ -350,6 +359,8 @@ class _AliasListPageState extends State<AliasListPage> {
           zoneId: selectedDomain.id,
           alias: alias,
           aliasRepository: widget.aliasRepository,
+          destinationRepository: widget.destinationRepository,
+          selectedDomain: selectedDomain,
           authRepository: widget.authRepository,
           domainContext: widget.domainContext,
         );
@@ -377,6 +388,8 @@ class _AliasListPageState extends State<AliasListPage> {
             domainName: selectedDomain.name,
             zoneId: selectedDomain.id,
             aliasRepository: widget.aliasRepository,
+            destinationRepository: widget.destinationRepository,
+            selectedDomain: selectedDomain,
             authRepository: widget.authRepository,
             domainContext: widget.domainContext,
           );
@@ -567,6 +580,8 @@ class CreateAliasSheet extends StatefulWidget {
     required this.domainName,
     required this.zoneId,
     required this.aliasRepository,
+    required this.destinationRepository,
+    required this.selectedDomain,
     required this.authRepository,
     required this.domainContext,
     this.initialAliasLocalPart,
@@ -575,6 +590,8 @@ class CreateAliasSheet extends StatefulWidget {
   final String domainName;
   final String zoneId;
   final AliasRepositoryContract aliasRepository;
+  final DestinationRepositoryContract destinationRepository;
+  final DomainSummary selectedDomain;
   final AuthRepository authRepository;
   final DomainContext domainContext;
   final String? initialAliasLocalPart;
@@ -586,7 +603,7 @@ class CreateAliasSheet extends StatefulWidget {
 class _CreateAliasSheetState extends State<CreateAliasSheet> {
   late final CreateAliasController _controller;
   late final TextEditingController _aliasController;
-  final TextEditingController _destinationController = TextEditingController();
+  String? _selectedDestination;
 
   @override
   void initState() {
@@ -603,7 +620,6 @@ class _CreateAliasSheetState extends State<CreateAliasSheet> {
   void dispose() {
     _controller.dispose();
     _aliasController.dispose();
-    _destinationController.dispose();
     super.dispose();
   }
 
@@ -612,7 +628,7 @@ class _CreateAliasSheetState extends State<CreateAliasSheet> {
       zoneId: widget.zoneId,
       domainName: widget.domainName,
       aliasLocalPart: _aliasController.text,
-      destination: _destinationController.text,
+      destination: _selectedDestination,
     );
 
     if (!mounted) {
@@ -637,6 +653,17 @@ class _CreateAliasSheetState extends State<CreateAliasSheet> {
 
     if (result.isSuccess) {
       Navigator.of(context).pop(true);
+    }
+  }
+
+  Future<void> _handleDestinationAuthFailure(AuthFailure failure) async {
+    if (failure.type == AuthFailureType.invalidToken ||
+        failure.type == AuthFailureType.insufficientPermissions) {
+      await invalidateSessionAndReturnToLogin(
+        context: context,
+        authRepository: widget.authRepository,
+        domainContext: widget.domainContext,
+      );
     }
   }
 
@@ -673,17 +700,19 @@ class _CreateAliasSheetState extends State<CreateAliasSheet> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: _destinationController,
+                DestinationEmailField(
+                  selectedDomain: widget.selectedDomain,
+                  destinationRepository: widget.destinationRepository,
                   enabled: !_controller.isSubmitting,
-                  keyboardType: TextInputType.emailAddress,
-                  onChanged: (_) => _controller.clearSubmitError(),
-                  decoration: InputDecoration(
-                    labelText: AppStrings.createAliasDestinationLabel,
-                    hintText: AppStrings.createAliasDestinationHint,
-                    border: const OutlineInputBorder(),
-                    errorText: _controller.destinationError,
-                  ),
+                  initialValue: _selectedDestination,
+                  errorText: _controller.destinationError,
+                  onAuthFailure: _handleDestinationAuthFailure,
+                  onChanged: (value) {
+                    _controller.clearSubmitError();
+                    setState(() {
+                      _selectedDestination = value;
+                    });
+                  },
                 ),
                 if (_controller.submitError != null) ...[
                   const SizedBox(height: 16),
@@ -738,6 +767,8 @@ class EditAliasSheet extends StatefulWidget {
     required this.zoneId,
     required this.alias,
     required this.aliasRepository,
+    required this.destinationRepository,
+    required this.selectedDomain,
     required this.authRepository,
     required this.domainContext,
   });
@@ -746,6 +777,8 @@ class EditAliasSheet extends StatefulWidget {
   final String zoneId;
   final AliasModel alias;
   final AliasRepositoryContract aliasRepository;
+  final DestinationRepositoryContract destinationRepository;
+  final DomainSummary selectedDomain;
   final AuthRepository authRepository;
   final DomainContext domainContext;
 
@@ -756,23 +789,20 @@ class EditAliasSheet extends StatefulWidget {
 class _EditAliasSheetState extends State<EditAliasSheet> {
   late final EditAliasController _controller;
   late final TextEditingController _aliasAddressController;
-  late final TextEditingController _destinationController;
+  String? _selectedDestination;
 
   @override
   void initState() {
     super.initState();
     _controller = EditAliasController(aliasRepository: widget.aliasRepository);
     _aliasAddressController = TextEditingController(text: widget.alias.address);
-    _destinationController = TextEditingController(
-      text: widget.alias.destination,
-    );
+    _selectedDestination = widget.alias.destination;
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _aliasAddressController.dispose();
-    _destinationController.dispose();
     super.dispose();
   }
 
@@ -782,7 +812,7 @@ class _EditAliasSheetState extends State<EditAliasSheet> {
       ruleId: widget.alias.id,
       aliasAddress: widget.alias.address,
       isEnabled: widget.alias.isEnabled,
-      destination: _destinationController.text,
+      destination: _selectedDestination,
     );
 
     if (!mounted) {
@@ -807,6 +837,17 @@ class _EditAliasSheetState extends State<EditAliasSheet> {
 
     if (result.isSuccess) {
       Navigator.of(context).pop(true);
+    }
+  }
+
+  Future<void> _handleDestinationAuthFailure(AuthFailure failure) async {
+    if (failure.type == AuthFailureType.invalidToken ||
+        failure.type == AuthFailureType.insufficientPermissions) {
+      await invalidateSessionAndReturnToLogin(
+        context: context,
+        authRepository: widget.authRepository,
+        domainContext: widget.domainContext,
+      );
     }
   }
 
@@ -840,17 +881,19 @@ class _EditAliasSheetState extends State<EditAliasSheet> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: _destinationController,
+                DestinationEmailField(
+                  selectedDomain: widget.selectedDomain,
+                  destinationRepository: widget.destinationRepository,
                   enabled: !_controller.isSubmitting,
-                  keyboardType: TextInputType.emailAddress,
-                  onChanged: (_) => _controller.clearSubmitError(),
-                  decoration: InputDecoration(
-                    labelText: AppStrings.editAliasDestinationLabel,
-                    hintText: AppStrings.createAliasDestinationHint,
-                    border: const OutlineInputBorder(),
-                    errorText: _controller.destinationError,
-                  ),
+                  initialValue: _selectedDestination,
+                  errorText: _controller.destinationError,
+                  onAuthFailure: _handleDestinationAuthFailure,
+                  onChanged: (value) {
+                    _controller.clearSubmitError();
+                    setState(() {
+                      _selectedDestination = value;
+                    });
+                  },
                 ),
                 if (_controller.submitError != null) ...[
                   const SizedBox(height: 16),

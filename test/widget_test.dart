@@ -10,6 +10,8 @@ import 'package:bariskode_cf_email/features/auth/domain/entities/auth_failure.da
 import 'package:bariskode_cf_email/features/auth/domain/repositories/auth_repository.dart';
 import 'package:bariskode_cf_email/features/catchall/data/catchall_repository.dart';
 import 'package:bariskode_cf_email/features/catchall/domain/entities/catchall_entry.dart';
+import 'package:bariskode_cf_email/features/destinations/data/destination_repository.dart';
+import 'package:bariskode_cf_email/features/destinations/domain/entities/destination_email.dart';
 import 'package:bariskode_cf_email/features/domains/data/domain_repository.dart';
 import 'package:bariskode_cf_email/features/domains/data/selected_domain_store.dart';
 import 'package:bariskode_cf_email/features/domains/domain/entities/domain_summary.dart';
@@ -511,12 +513,20 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
                 selectedDomainStore: FakeSelectedDomainStore(),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
         ),
       );
@@ -589,11 +599,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           catchAllRepository: FakeCatchAllRepository(entriesByZone: const {}),
         ),
@@ -619,11 +637,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           catchAllRepository: FakeCatchAllRepository(
             entriesByZone: const {
@@ -666,11 +692,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: aliasRepository,
           catchAllRepository: FakeCatchAllRepository(
@@ -696,10 +730,6 @@ void main() {
       );
       expect(find.text('amazon'), findsOneWidget);
 
-      await tester.enterText(
-        find.widgetWithText(TextField, AppStrings.createAliasDestinationLabel),
-        'dest@example.net',
-      );
       await tester.tap(find.text(AppStrings.createAliasSubmitButton));
       await tester.pumpAndSettle();
 
@@ -729,11 +759,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           catchAllRepository: FakeCatchAllRepository(
             authFailure: const AuthFailure.invalidToken(),
@@ -761,11 +799,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           catchAllRepository: FakeCatchAllRepository(
             error: const AuthFailure.network(),
@@ -794,11 +840,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           analyticsRepository: FakeAnalyticsRepository(
             logs: [
@@ -838,11 +892,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           analyticsRepository: FakeAnalyticsRepository(
             authFailure: const AuthFailure.network(),
@@ -1045,11 +1107,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             aliases: const [
@@ -1084,11 +1154,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(),
         ),
@@ -1126,11 +1204,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: aliasRepository,
         ),
@@ -1160,11 +1246,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             authFailure: const AuthFailure.invalidToken(),
@@ -1285,11 +1379,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(),
         ),
@@ -1316,11 +1418,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(),
         ),
@@ -1337,7 +1447,7 @@ void main() {
       expect(find.text(AppStrings.createAliasAliasRequired), findsOneWidget);
       expect(
         find.text(AppStrings.createAliasDestinationRequired),
-        findsOneWidget,
+        findsNothing,
       );
       expect(find.text(AppStrings.createAliasTitle), findsWidgets);
     });
@@ -1354,11 +1464,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: aliasRepository,
         ),
@@ -1371,14 +1489,17 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField).at(0), 'sales');
-      await tester.enterText(find.byType(TextField).at(1), 'dest@example.net');
+      await selectVerifiedDestination(tester, 'dest@example.net');
       await tester.tap(find.text(AppStrings.createAliasSubmitButton));
+      await tester.pumpAndSettle();
+
+      expect(aliasRepository.createCalls, hasLength(1));
+      await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.createAliasSuccess), findsOneWidget);
       expect(find.text('sales@example.com'), findsOneWidget);
       expect(find.text('dest@example.net'), findsOneWidget);
-      expect(aliasRepository.createCalls, hasLength(1));
     });
 
     testWidgets('create alias API error keeps sheet open and shows error', (
@@ -1391,11 +1512,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             createError: const ApiException('Alias already exists.'),
@@ -1410,7 +1539,6 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField).at(0), 'sales');
-      await tester.enterText(find.byType(TextField).at(1), 'dest@example.net');
       await tester.tap(find.text(AppStrings.createAliasSubmitButton));
       await tester.pumpAndSettle();
 
@@ -1430,11 +1558,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             createAuthFailure: const AuthFailure.invalidToken(),
@@ -1449,7 +1585,6 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField).at(0), 'sales');
-      await tester.enterText(find.byType(TextField).at(1), 'dest@example.net');
       await tester.tap(find.text(AppStrings.createAliasSubmitButton));
       await tester.pumpAndSettle();
 
@@ -1469,11 +1604,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             createAuthFailure: const AuthFailure.network(),
@@ -1488,7 +1631,6 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField).at(0), 'sales');
-      await tester.enterText(find.byType(TextField).at(1), 'dest@example.net');
       await tester.tap(find.text(AppStrings.createAliasSubmitButton));
       await tester.pumpAndSettle();
 
@@ -1507,11 +1649,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             aliases: const [
@@ -1546,7 +1696,7 @@ void main() {
           AliasModel(
             id: 'rule-1',
             address: 'sales@example.com',
-            destination: 'dest@example.net',
+            destination: 'stale@example.net',
             isEnabled: true,
             isSupported: true,
           ),
@@ -1560,11 +1710,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: aliasRepository,
         ),
@@ -1576,15 +1734,15 @@ void main() {
       await tester.tap(find.byTooltip(AppStrings.editAliasTitle));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.byType(TextField).at(1),
-        'edited@example.net',
-      );
       await tester.tap(find.text(AppStrings.editAliasSubmitButton));
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.editAliasSuccess), findsOneWidget);
-      expect(find.text('edited@example.net'), findsOneWidget);
+      expect(find.text('dest@example.net'), findsOneWidget);
+      expect(
+        aliasRepository.updateCalls.single.destination,
+        'dest@example.net',
+      );
       expect(aliasRepository.updateCalls, hasLength(1));
     });
 
@@ -1600,18 +1758,26 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             aliases: const [
               AliasModel(
                 id: 'rule-1',
                 address: 'sales@example.com',
-                destination: 'dest@example.net',
+                destination: 'stale@example.net',
                 isEnabled: true,
                 isSupported: true,
               ),
@@ -1627,10 +1793,6 @@ void main() {
       await tester.tap(find.byTooltip(AppStrings.editAliasTitle));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.byType(TextField).at(1),
-        'edited@example.net',
-      );
       await tester.tap(find.text(AppStrings.editAliasSubmitButton));
       await tester.pumpAndSettle();
 
@@ -1648,12 +1810,23 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
+          destinationRepository: const FakeDestinationRepository(
+            destinations: [],
+          ),
           aliasRepository: FakeAliasRepository(
             aliases: const [
               AliasModel(
@@ -1674,7 +1847,6 @@ void main() {
       await tester.tap(find.byTooltip(AppStrings.editAliasTitle));
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField).at(1), ' ');
       await tester.tap(find.text(AppStrings.editAliasSubmitButton));
       await tester.pumpAndSettle();
 
@@ -1695,18 +1867,26 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             aliases: const [
               AliasModel(
                 id: 'rule-1',
                 address: 'sales@example.com',
-                destination: 'dest@example.net',
+                destination: 'stale@example.net',
                 isEnabled: true,
                 isSupported: true,
               ),
@@ -1722,10 +1902,6 @@ void main() {
       await tester.tap(find.byTooltip(AppStrings.editAliasTitle));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.byType(TextField).at(1),
-        'edited@example.net',
-      );
       await tester.tap(find.text(AppStrings.editAliasSubmitButton));
       await tester.pumpAndSettle();
 
@@ -1743,11 +1919,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             aliases: const [
@@ -1780,7 +1964,7 @@ void main() {
           AliasModel(
             id: 'rule-1',
             address: 'sales@example.com',
-            destination: 'dest@example.net',
+            destination: 'stale@example.net',
             isEnabled: true,
             isSupported: true,
           ),
@@ -1794,11 +1978,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: aliasRepository,
         ),
@@ -1829,11 +2021,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             aliases: const [
@@ -1874,11 +2074,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             aliases: const [
@@ -1917,7 +2125,7 @@ void main() {
           AliasModel(
             id: 'rule-1',
             address: 'sales@example.com',
-            destination: 'dest@example.net',
+            destination: 'stale@example.net',
             isEnabled: true,
             isSupported: true,
           ),
@@ -1931,11 +2139,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: aliasRepository,
         ),
@@ -1975,11 +2191,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: aliasRepository,
         ),
@@ -2009,11 +2233,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             aliases: const [
@@ -2052,11 +2284,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: FakeAliasRepository(
             aliases: const [
@@ -2127,11 +2367,19 @@ void main() {
               DomainContext(
                 repository: FakeDomainRepository(
                   domains: const [
-                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                    DomainSummary(
+                      id: 'zone-1',
+                      name: 'example.com',
+                      accountId: 'acc-1',
+                    ),
                   ],
                 ),
               )..selectDomain(
-                const DomainSummary(id: 'zone-1', name: 'example.com'),
+                const DomainSummary(
+                  id: 'zone-1',
+                  name: 'example.com',
+                  accountId: 'acc-1',
+                ),
               ),
           aliasRepository: aliasRepository,
         ),
@@ -2147,21 +2395,31 @@ void main() {
         find.widgetWithText(TextField, AppStrings.aliasGeneratorServiceLabel),
         'amazon',
       );
-      await tester.enterText(
-        find.widgetWithText(TextField, AppStrings.createAliasDestinationLabel),
-        'dest@example.net',
-      );
       await tester.tap(find.text(AppStrings.aliasGeneratorRegenerateButton));
       await tester.pumpAndSettle();
+      await selectVerifiedDestination(tester, 'dest@example.net');
       await tester.tap(find.text(AppStrings.aliasGeneratorCreateButton));
+      await tester.pumpAndSettle();
+
+      expect(aliasRepository.createCalls, hasLength(1));
+      await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.createAliasSuccess), findsOneWidget);
       expect(find.textContaining('amazon-'), findsWidgets);
       expect(find.text('dest@example.net'), findsOneWidget);
-      expect(aliasRepository.createCalls, hasLength(1));
     });
   });
+}
+
+Future<void> selectVerifiedDestination(
+  WidgetTester tester,
+  String email,
+) async {
+  await tester.tap(find.byType(DropdownButtonFormField<String>).last);
+  await tester.pumpAndSettle();
+  await tester.tap(find.textContaining(email).last);
+  await tester.pumpAndSettle();
 }
 
 BariskodeCfEmailApp buildTestApp({
@@ -2170,6 +2428,7 @@ BariskodeCfEmailApp buildTestApp({
   AliasRepositoryContract? aliasRepository,
   CatchAllRepositoryContract? catchAllRepository,
   AnalyticsRepositoryContract? analyticsRepository,
+  DestinationRepositoryContract? destinationRepository,
 }) {
   return BariskodeCfEmailApp(
     authRepository: authRepository,
@@ -2182,6 +2441,8 @@ BariskodeCfEmailApp buildTestApp({
     aliasRepository: aliasRepository ?? FakeAliasRepository(),
     catchAllRepository: catchAllRepository ?? const FakeCatchAllRepository(),
     analyticsRepository: analyticsRepository ?? FakeAnalyticsRepository(),
+    destinationRepository:
+        destinationRepository ?? const FakeDestinationRepository(),
   );
 }
 
@@ -2370,13 +2631,16 @@ class FakeAnalyticsRepository implements AnalyticsRepositoryContract {
   final AuthFailure? authFailure;
   final Exception? error;
   final List<int> requestedLimits = <int>[];
+  final List<DateTime?> requestedBeforeValues = <DateTime?>[];
 
   @override
-  Future<List<ActivityLogEntry>> listActivityLogs({
+  Future<ActivityLogPage> listActivityLogs({
     required String zoneId,
     int limit = 20,
+    DateTime? before,
   }) async {
     requestedLimits.add(limit);
+    requestedBeforeValues.add(before);
 
     if (authFailure != null) {
       throw authFailure!;
@@ -2386,7 +2650,24 @@ class FakeAnalyticsRepository implements AnalyticsRepositoryContract {
       throw error!;
     }
 
-    return List<ActivityLogEntry>.unmodifiable(logs.take(limit));
+    final startIndex = before == null
+        ? 0
+        : logs.indexWhere((entry) => entry.timestamp.isBefore(before));
+    final safeStartIndex = startIndex < 0 ? logs.length : startIndex;
+    final pageEntries = logs
+        .skip(safeStartIndex)
+        .take(limit)
+        .toList(growable: false);
+
+    return ActivityLogPage(
+      entries: List<ActivityLogEntry>.unmodifiable(pageEntries),
+      hasMore: safeStartIndex + pageEntries.length < logs.length,
+      nextBefore: pageEntries.length < limit
+          ? null
+          : pageEntries.last.timestamp.subtract(
+              const Duration(milliseconds: 1),
+            ),
+    );
   }
 }
 
@@ -2433,7 +2714,8 @@ class FakeAliasRepository implements AliasRepositoryContract {
   Future<AliasModel> createAlias({
     required String zoneId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
+    String actionType = 'forward',
   }) async {
     if (createAuthFailure != null) {
       throw createAuthFailure!;
@@ -2448,15 +2730,17 @@ class FakeAliasRepository implements AliasRepositoryContract {
         zoneId: zoneId,
         aliasAddress: aliasAddress,
         destination: destination,
+        actionType: actionType,
       ),
     );
 
     final alias = AliasModel(
       id: 'created-${createCalls.length}',
       address: aliasAddress,
-      destination: destination,
+      destination: destination ?? 'Blocked',
       isEnabled: true,
       isSupported: true,
+      actionType: actionType,
     );
     _aliases.add(alias);
     return alias;
@@ -2467,8 +2751,9 @@ class FakeAliasRepository implements AliasRepositoryContract {
     required String zoneId,
     required String ruleId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
     required bool isEnabled,
+    String actionType = 'forward',
   }) async {
     if (updateAuthFailure != null) {
       throw updateAuthFailure!;
@@ -2485,6 +2770,7 @@ class FakeAliasRepository implements AliasRepositoryContract {
         aliasAddress: aliasAddress,
         destination: destination,
         isEnabled: isEnabled,
+        actionType: actionType,
       ),
     );
 
@@ -2492,9 +2778,10 @@ class FakeAliasRepository implements AliasRepositoryContract {
     final updatedAlias = AliasModel(
       id: ruleId,
       address: aliasAddress,
-      destination: destination,
+      destination: destination ?? 'Blocked',
       isEnabled: isEnabled,
       isSupported: true,
+      actionType: actionType,
     );
 
     if (index >= 0) {
@@ -2543,7 +2830,8 @@ class FlakyAliasRepository implements AliasRepositoryContract {
   Future<AliasModel> createAlias({
     required String zoneId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
+    String actionType = 'forward',
   }) async {
     throw UnimplementedError();
   }
@@ -2553,8 +2841,9 @@ class FlakyAliasRepository implements AliasRepositoryContract {
     required String zoneId,
     required String ruleId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
     required bool isEnabled,
+    String actionType = 'forward',
   }) async {
     throw UnimplementedError();
   }
@@ -2586,7 +2875,8 @@ class DelayedSwitchingAliasRepository implements AliasRepositoryContract {
   Future<AliasModel> createAlias({
     required String zoneId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
+    String actionType = 'forward',
   }) async {
     throw UnimplementedError();
   }
@@ -2596,8 +2886,9 @@ class DelayedSwitchingAliasRepository implements AliasRepositoryContract {
     required String zoneId,
     required String ruleId,
     required String aliasAddress,
-    required String destination,
+    String? destination,
     required bool isEnabled,
+    String actionType = 'forward',
   }) async {
     throw UnimplementedError();
   }
@@ -2619,12 +2910,14 @@ class CreateAliasCall {
   const CreateAliasCall({
     required this.zoneId,
     required this.aliasAddress,
-    required this.destination,
+    this.destination,
+    required this.actionType,
   });
 
   final String zoneId;
   final String aliasAddress;
-  final String destination;
+  final String? destination;
+  final String actionType;
 }
 
 class UpdateAliasCall {
@@ -2632,15 +2925,42 @@ class UpdateAliasCall {
     required this.zoneId,
     required this.ruleId,
     required this.aliasAddress,
-    required this.destination,
+    this.destination,
     required this.isEnabled,
+    required this.actionType,
   });
 
   final String zoneId;
   final String ruleId;
   final String aliasAddress;
-  final String destination;
+  final String? destination;
   final bool isEnabled;
+  final String actionType;
+}
+
+class FakeDestinationRepository implements DestinationRepositoryContract {
+  const FakeDestinationRepository({this.destinations = _defaultDestinations});
+
+  static const List<DestinationEmail> _defaultDestinations = [
+    DestinationEmail(id: 'dest-1', email: 'dest@example.net', isVerified: true),
+  ];
+
+  final List<DestinationEmail> destinations;
+
+  @override
+  Future<DestinationEmail> createDestination({
+    required String accountId,
+    required String email,
+  }) async {
+    return DestinationEmail(id: 'created', email: email, isVerified: false);
+  }
+
+  @override
+  Future<List<DestinationEmail>> listDestinations({
+    required String accountId,
+  }) async {
+    return List<DestinationEmail>.unmodifiable(destinations);
+  }
 }
 
 class DeleteAliasCall {

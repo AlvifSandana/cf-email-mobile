@@ -33,7 +33,8 @@ class CatchAllRepository implements CatchAllRepositoryContract {
     required String zoneId,
     required String domainName,
   }) async {
-    final logs = await analyticsRepository.listActivityLogs(zoneId: zoneId);
+    final logsPage = await analyticsRepository.listActivityLogs(zoneId: zoneId);
+    final logs = logsPage.entries;
     final aliases = await aliasRepository.listAliases(zoneId: zoneId);
     final existingAddresses = aliases
         .map((alias) => alias.address.toLowerCase())
