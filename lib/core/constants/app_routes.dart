@@ -4,5 +4,5 @@ class AppRoutes {
   static const startup = '/startup';
   static const login = '/login';
   static const domainSelector = '/domains';
-  static const shell = '/';
+  static const shell = '/shell';
 }

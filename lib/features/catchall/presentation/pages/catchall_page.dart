@@ -209,12 +209,6 @@ class _CatchAllPageState extends State<CatchAllPage> {
     }
   }
 
-  void _showBlockPlaceholder() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(AppStrings.catchAllBlockPlaceholder)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -334,10 +328,6 @@ class _CatchAllPageState extends State<CatchAllPage> {
                           OutlinedButton(
                             onPressed: () => _ignoreEntry(entry),
                             child: const Text(AppStrings.catchAllIgnoreButton),
-                          ),
-                          OutlinedButton(
-                            onPressed: _showBlockPlaceholder,
-                            child: const Text(AppStrings.catchAllBlockButton),
                           ),
                         ],
                       ),

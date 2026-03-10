@@ -2,7 +2,7 @@ class AppStrings {
   const AppStrings._();
 
   static const appName = 'Cloudflare Email Manager Mobile';
-  static const planningBanner = 'Phase 2 · Auth Foundation';
+  static const planningBanner = 'MVP Progress · Core Flows Active';
   static const loginTitle = 'Login with API Token';
   static const loginDescription =
       'Use your Cloudflare API Token to access email routing management.';
@@ -52,12 +52,13 @@ class AppStrings {
   static const activityNoDomainSelected =
       'Select a domain first to review email activity.';
   static const activityRefreshButton = 'Refresh activity';
+  static const activityLoadMoreButton = 'Load more';
+  static const activityLoadingMoreLabel = 'Loading more activity...';
+  static const activityLoadMoreError =
+      'Unable to load more activity right now.';
   static const activityListSubtitle =
       'Recent email routing events from Cloudflare analytics.';
   static const catchAllIgnoreButton = 'Ignore';
-  static const catchAllBlockButton = 'Block';
-  static const catchAllBlockPlaceholder =
-      'Block action is not available in this MVP slice yet.';
   static const createAliasButton = 'Create Alias';
   static const aliasGeneratorButton = 'Generate Alias';
   static const aliasGeneratorTitle = 'Alias Generator';
@@ -111,13 +112,43 @@ class AppStrings {
   static const aliasUnsupportedRule = 'Unsupported routing rule';
   static const aliasStatusEnabled = 'Enabled';
   static const aliasStatusDisabled = 'Disabled';
-  static const settingsPlaceholder =
-      'Manage your session and future app preferences here.';
+  static const dashboardTitle = 'Dashboard';
+  static const dashboardNoDomainTitle = 'No active domain selected';
+  static const dashboardNoDomainDescription =
+      'Choose a Cloudflare domain to start managing aliases, catch-all activity, and routing logs.';
+  static const dashboardNoDomainHint =
+      'Your current management context will appear here after selecting a domain.';
+  static const dashboardDomainHint =
+      'This domain is currently active across aliases, catch-all review, and activity logs.';
+  static const dashboardActiveDomainLabel = 'Active domain';
+  static const dashboardSelectDomainButton = 'Select Domain';
+  static const dashboardChangeDomainButton = 'Change Domain';
+  static const dashboardQuickActionsTitle = 'Quick actions';
+  static const dashboardSummaryTitle = 'MVP summary';
+  static const dashboardSummaryBody =
+      'Core alias management, catch-all review, and activity monitoring are available from this app shell.';
+  static const settingsTitle = 'Settings';
+  static const settingsDomainSectionTitle = 'Domain';
+  static const settingsNoDomainSelected = 'No domain selected yet.';
+  static const settingsChangeDomainButton = 'Change Domain';
+  static const settingsChangeDomainHint =
+      'Switch the active domain used by aliases, catch-all, and activity tabs.';
+  static const settingsSessionSectionTitle = 'Session';
+  static const settingsSessionDescription =
+      'Your Cloudflare API token is stored securely on this device.';
+  static const settingsLogoutHint =
+      'Clear the saved session and return to login.';
+  static const settingsAboutSectionTitle = 'About';
+  static const settingsAboutDescription =
+      'Mobile MVP for managing Cloudflare Email Routing from one active domain at a time.';
   static const dashboardTab = 'Dashboard';
   static const aliasesTab = 'Aliases';
   static const catchAllTab = 'Catch-All';
   static const activityTab = 'Activity';
   static const settingsTab = 'Settings';
+
+  static String dashboardReadyDescription(String domainName) =>
+      'Everything is ready for $domainName. Jump into aliases, catch-all review, or recent routing activity.';
 
   static String placeholderTitle(String tabLabel) => '$tabLabel Page';
 

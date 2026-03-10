@@ -24,11 +24,17 @@ class ActivityLogsPage extends StatefulWidget {
 }
 
 class _ActivityLogsPageState extends State<ActivityLogsPage> {
+  static const int _pageSize = 20;
+  static const int _maxLimit = 100;
+
   List<ActivityLogEntry> _logs = const [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   String? _errorMessage;
   String? _activeZoneId;
   bool _reloadRequested = false;
+  int _currentLimit = _pageSize;
+  bool _hasMore = true;
 
   @override
   void initState() {
@@ -59,6 +65,9 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
         _logs = const [];
         _errorMessage = null;
         _isLoading = false;
+        _isLoadingMore = false;
+        _currentLimit = _pageSize;
+        _hasMore = true;
       });
       return;
     }
@@ -73,25 +82,31 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
       return;
     }
 
-    await _loadLogs(zoneId: zoneId);
+    _currentLimit = _pageSize;
+    _hasMore = true;
+    await _loadLogs(zoneId: zoneId, limit: _currentLimit);
   }
 
-  Future<void> _loadLogs({String? zoneId}) async {
+  Future<void> _loadLogs({String? zoneId, int? limit}) async {
     final requestedZoneId = zoneId ?? widget.domainContext.selectedDomain?.id;
     if (requestedZoneId == null || _isLoading) {
       return;
     }
 
+    final requestedLimit = (limit ?? _currentLimit).clamp(1, _maxLimit);
+
     _activeZoneId = requestedZoneId;
 
     setState(() {
       _isLoading = true;
+      _isLoadingMore = false;
       _errorMessage = null;
     });
 
     try {
       final logs = await widget.analyticsRepository.listActivityLogs(
         zoneId: requestedZoneId,
+        limit: requestedLimit,
       );
 
       if (!mounted) {
@@ -105,6 +120,8 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
 
       setState(() {
         _logs = logs;
+        _currentLimit = requestedLimit;
+        _hasMore = logs.length >= requestedLimit && requestedLimit < _maxLimit;
       });
     } on AuthFailure catch (failure) {
       if (!mounted) {
@@ -155,6 +172,73 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
     }
   }
 
+  Future<void> _loadMoreLogs() async {
+    final zoneId = widget.domainContext.selectedDomain?.id;
+    if (zoneId == null || _isLoading || _isLoadingMore || !_hasMore) {
+      return;
+    }
+
+    final requestedLimit = (_currentLimit + _pageSize).clamp(1, _maxLimit);
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final logs = await widget.analyticsRepository.listActivityLogs(
+        zoneId: zoneId,
+        limit: requestedLimit,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (widget.domainContext.selectedDomain?.id != zoneId) {
+        _reloadRequested = true;
+        return;
+      }
+
+      setState(() {
+        _logs = logs;
+        _currentLimit = requestedLimit;
+        _hasMore = logs.length >= requestedLimit && requestedLimit < _maxLimit;
+      });
+    } on AuthFailure catch (failure) {
+      if (!mounted) {
+        return;
+      }
+
+      if (failure.type == AuthFailureType.invalidToken ||
+          failure.type == AuthFailureType.insufficientPermissions) {
+        await invalidateSessionAndReturnToLogin(
+          context: context,
+          authRepository: widget.authRepository,
+          domainContext: widget.domainContext,
+        );
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.activityLoadMoreError)),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(AppStrings.activityLoadMoreError)),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -166,7 +250,7 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
           return const Center(child: Text(AppStrings.activityNoDomainSelected));
         }
 
-        if (_isLoading) {
+        if (_isLoading && _logs.isEmpty) {
           return const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -222,9 +306,13 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
         }
 
         return RefreshIndicator(
-          onRefresh: _loadLogs,
+          onRefresh: () {
+            _currentLimit = _pageSize;
+            _hasMore = true;
+            return _loadLogs(limit: _currentLimit);
+          },
           child: ListView.builder(
-            itemCount: _logs.length + 1,
+            itemCount: _logs.length + 2,
             itemBuilder: (context, index) {
               if (index == 0) {
                 return ListTile(
@@ -233,9 +321,43 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
                   ),
                   subtitle: const Text(AppStrings.activityListSubtitle),
                   trailing: IconButton(
-                    onPressed: _loadLogs,
+                    onPressed: () {
+                      _currentLimit = _pageSize;
+                      _hasMore = true;
+                      _loadLogs(limit: _currentLimit);
+                    },
                     icon: const Icon(Icons.refresh),
                     tooltip: AppStrings.activityRefreshButton,
+                  ),
+                );
+              }
+
+              if (index == _logs.length + 1) {
+                if (_isLoadingMore) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 12),
+                          Text(AppStrings.activityLoadingMoreLabel),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                if (!_hasMore) {
+                  return const SizedBox.shrink();
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  child: OutlinedButton(
+                    onPressed: _loadMoreLogs,
+                    child: const Text(AppStrings.activityLoadMoreButton),
                   ),
                 );
               }

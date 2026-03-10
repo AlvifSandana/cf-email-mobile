@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bariskode_cf_email/app/app.dart';
+import 'package:bariskode_cf_email/core/constants/app_routes.dart';
 import 'package:bariskode_cf_email/core/constants/app_strings.dart';
 import 'package:bariskode_cf_email/features/analytics/data/analytics_repository.dart';
 import 'package:bariskode_cf_email/features/analytics/domain/entities/activity_log_entry.dart';
@@ -10,6 +11,7 @@ import 'package:bariskode_cf_email/features/auth/domain/repositories/auth_reposi
 import 'package:bariskode_cf_email/features/catchall/data/catchall_repository.dart';
 import 'package:bariskode_cf_email/features/catchall/domain/entities/catchall_entry.dart';
 import 'package:bariskode_cf_email/features/domains/data/domain_repository.dart';
+import 'package:bariskode_cf_email/features/domains/data/selected_domain_store.dart';
 import 'package:bariskode_cf_email/features/domains/domain/entities/domain_summary.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
 import 'package:bariskode_cf_email/shared/models/alias_model.dart';
@@ -22,14 +24,27 @@ void main() {
     testWidgets('shows login when there is no saved session', (
       WidgetTester tester,
     ) async {
+      final selectedDomainStore = FakeSelectedDomainStore(
+        initialDomainId: 'zone-1',
+      );
+      final domainContext = DomainContext(
+        repository: FakeDomainRepository(),
+        selectedDomainStore: selectedDomainStore,
+      )..selectDomain(const DomainSummary(id: 'zone-1', name: 'example.com'));
+
       await tester.pumpWidget(
-        buildTestApp(authRepository: FakeAuthRepository()),
+        buildTestApp(
+          authRepository: FakeAuthRepository(),
+          domainContext: domainContext,
+        ),
       );
 
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.loginTitle), findsOneWidget);
       expect(find.text(AppStrings.loginButton), findsOneWidget);
+      expect(domainContext.selectedDomain?.id, 'zone-1');
+      expect(selectedDomainStore.clearCalls, 0);
     });
 
     testWidgets('shows app shell when there is a saved session', (
@@ -44,10 +59,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(NavigationDestination), findsNWidgets(5));
-      expect(
-        find.text(AppStrings.placeholderTitle(AppStrings.dashboardTab)),
-        findsOneWidget,
-      );
+      expect(find.text(AppStrings.dashboardTitle), findsWidgets);
     });
 
     testWidgets('shows retryable startup error on network failure', (
@@ -69,6 +81,221 @@ void main() {
 
       expect(find.text(AppStrings.loginTitle), findsOneWidget);
     });
+
+    testWidgets(
+      'startup clears selected domain when saved session becomes invalid',
+      (WidgetTester tester) async {
+        final selectedDomainStore = FakeSelectedDomainStore(
+          initialDomainId: 'zone-1',
+        );
+        final domainContext = DomainContext(
+          repository: FakeDomainRepository(),
+          selectedDomainStore: selectedDomainStore,
+        )..selectDomain(const DomainSummary(id: 'zone-1', name: 'example.com'));
+        final authRepository = FakeAuthRepository(
+          initialToken: _validToken,
+          hasValidSessionResult: false,
+        );
+
+        await tester.pumpWidget(
+          buildTestApp(
+            authRepository: authRepository,
+            domainContext: domainContext,
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.text(AppStrings.loginTitle), findsOneWidget);
+        expect(domainContext.selectedDomain, isNull);
+        expect(selectedDomainStore.clearCalls, greaterThanOrEqualTo(1));
+      },
+    );
+
+    testWidgets('shell route guard redirects unauthenticated access to login', (
+      WidgetTester tester,
+    ) async {
+      final selectedDomainStore = FakeSelectedDomainStore(
+        initialDomainId: 'zone-1',
+      );
+      final domainContext = DomainContext(
+        repository: FakeDomainRepository(),
+        selectedDomainStore: selectedDomainStore,
+      )..selectDomain(const DomainSummary(id: 'zone-1', name: 'example.com'));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          initialRoute: AppRoutes.shell,
+          routes: {
+            AppRoutes.shell: (_) => ProtectedShellRoute(
+              authRepository: FakeAuthRepository(hasValidSessionResult: false),
+              domainContext: domainContext,
+              child: const Scaffold(body: Text('Shell Page')),
+            ),
+            AppRoutes.login: (_) =>
+                const Scaffold(body: Text(AppStrings.loginTitle)),
+          },
+        ),
+      );
+
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.loginTitle), findsOneWidget);
+      expect(find.text('Shell Page'), findsNothing);
+      expect(domainContext.selectedDomain?.id, 'zone-1');
+      expect(selectedDomainStore.clearCalls, 0);
+    });
+
+    testWidgets(
+      'shell route guard clears selected domain when saved session becomes invalid',
+      (WidgetTester tester) async {
+        final selectedDomainStore = FakeSelectedDomainStore(
+          initialDomainId: 'zone-1',
+        );
+        final domainContext = DomainContext(
+          repository: FakeDomainRepository(),
+          selectedDomainStore: selectedDomainStore,
+        )..selectDomain(const DomainSummary(id: 'zone-1', name: 'example.com'));
+
+        await tester.pumpWidget(
+          MaterialApp(
+            initialRoute: AppRoutes.shell,
+            routes: {
+              AppRoutes.shell: (_) => ProtectedShellRoute(
+                authRepository: FakeAuthRepository(
+                  initialToken: _validToken,
+                  hasValidSessionResult: false,
+                ),
+                domainContext: domainContext,
+                child: const Scaffold(body: Text('Shell Page')),
+              ),
+              AppRoutes.login: (_) =>
+                  const Scaffold(body: Text(AppStrings.loginTitle)),
+            },
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(find.text(AppStrings.loginTitle), findsOneWidget);
+        expect(find.text('Shell Page'), findsNothing);
+        expect(domainContext.selectedDomain, isNull);
+        expect(selectedDomainStore.clearCalls, greaterThanOrEqualTo(1));
+      },
+    );
+
+    testWidgets(
+      'shell route guard retry recovers after transient session check failure',
+      (WidgetTester tester) async {
+        final authRepository = FakeAuthRepository(
+          initialToken: _validToken,
+          startupFailure: const AuthFailure.network(),
+        );
+
+        final domainContext = DomainContext(
+          repository: FakeDomainRepository(),
+        )..selectDomain(const DomainSummary(id: 'zone-1', name: 'example.com'));
+
+        await tester.pumpWidget(
+          MaterialApp(
+            initialRoute: AppRoutes.shell,
+            routes: {
+              AppRoutes.shell: (_) => ProtectedShellRoute(
+                authRepository: authRepository,
+                domainContext: domainContext,
+                child: const Scaffold(body: Text('Shell Page')),
+              ),
+              AppRoutes.login: (_) =>
+                  const Scaffold(body: Text(AppStrings.loginTitle)),
+            },
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(find.text(AppStrings.authStartupError), findsOneWidget);
+
+        authRepository.startupFailure = null;
+        await tester.tap(find.text(AppStrings.retryButton));
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(find.text('Shell Page'), findsOneWidget);
+        expect(find.text(AppStrings.loginTitle), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'shell route guard invalidates session when domain load reports invalid auth',
+      (WidgetTester tester) async {
+        final selectedDomainStore = FakeSelectedDomainStore(
+          initialDomainId: 'zone-1',
+        );
+        final domainContext = DomainContext(
+          repository: FakeDomainRepository(
+            authFailure: const AuthFailure.invalidToken(),
+          ),
+          selectedDomainStore: selectedDomainStore,
+        );
+        final authRepository = FakeAuthRepository(initialToken: _validToken);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            initialRoute: AppRoutes.shell,
+            routes: {
+              AppRoutes.shell: (_) => ProtectedShellRoute(
+                authRepository: authRepository,
+                domainContext: domainContext,
+                child: const Scaffold(body: Text('Shell Page')),
+              ),
+              AppRoutes.login: (_) =>
+                  const Scaffold(body: Text(AppStrings.loginTitle)),
+            },
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(find.text(AppStrings.loginTitle), findsOneWidget);
+        expect(find.text('Shell Page'), findsNothing);
+        expect(domainContext.selectedDomain, isNull);
+        expect(selectedDomainStore.clearCalls, greaterThanOrEqualTo(1));
+      },
+    );
+
+    testWidgets(
+      'shell route guard shows retryable error on session check failure',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            initialRoute: AppRoutes.shell,
+            routes: {
+              AppRoutes.shell: (_) => ProtectedShellRoute(
+                authRepository: FakeAuthRepository(
+                  startupFailure: const AuthFailure.network(),
+                ),
+                domainContext: DomainContext(
+                  repository: FakeDomainRepository(),
+                ),
+                child: const Scaffold(body: Text('Shell Page')),
+              ),
+              AppRoutes.login: (_) =>
+                  const Scaffold(body: Text(AppStrings.loginTitle)),
+            },
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(find.text(AppStrings.authStartupError), findsOneWidget);
+        expect(find.text(AppStrings.retryButton), findsOneWidget);
+      },
+    );
   });
 
   group('login flow', () {
@@ -97,10 +324,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(authRepository.savedTokens, [_validToken]);
-      expect(
-        find.text(AppStrings.placeholderTitle(AppStrings.dashboardTab)),
-        findsOneWidget,
-      );
+      expect(find.text(AppStrings.dashboardTitle), findsWidgets);
     });
 
     testWidgets('shows invalid token error from repository failure', (
@@ -132,7 +356,7 @@ void main() {
       await tester.pumpWidget(buildTestApp(authRepository: authRepository));
 
       await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.settingsTab));
+      await tapNavTab(tester, AppStrings.settingsTab);
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.logoutButton));
       await tester.pumpAndSettle();
@@ -151,17 +375,76 @@ void main() {
 
       await tester.pumpWidget(buildTestApp(authRepository: authRepository));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.settingsTab));
+      await tapNavTab(tester, AppStrings.settingsTab);
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.logoutButton));
       await tester.pumpAndSettle();
 
       expect(authRepository.logoutAttempts, 1);
       expect(find.text(AppStrings.logoutError), findsOneWidget);
-      expect(
-        find.text(AppStrings.placeholderTitle(AppStrings.settingsTab)),
-        findsOneWidget,
+      expect(find.text(AppStrings.settingsTitle), findsWidgets);
+    });
+  });
+
+  group('dashboard and settings', () {
+    testWidgets('dashboard shows selected domain context and quick actions', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          authRepository: FakeAuthRepository(initialToken: _validToken),
+          domainContext:
+              DomainContext(
+                repository: FakeDomainRepository(
+                  domains: const [
+                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                  ],
+                ),
+                selectedDomainStore: FakeSelectedDomainStore(),
+              )..selectDomain(
+                const DomainSummary(id: 'zone-1', name: 'example.com'),
+              ),
+        ),
       );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.dashboardTitle), findsWidgets);
+      expect(find.text('example.com'), findsWidgets);
+      expect(find.text(AppStrings.dashboardQuickActionsTitle), findsOneWidget);
+      expect(find.text(AppStrings.aliasesTab), findsWidgets);
+      expect(find.text(AppStrings.catchAllTab), findsWidgets);
+      expect(find.text(AppStrings.activityTab), findsWidgets);
+    });
+
+    testWidgets('settings shows active domain and change-domain action', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestApp(
+          authRepository: FakeAuthRepository(initialToken: _validToken),
+          domainContext:
+              DomainContext(
+                repository: FakeDomainRepository(
+                  domains: const [
+                    DomainSummary(id: 'zone-1', name: 'example.com'),
+                  ],
+                ),
+                selectedDomainStore: FakeSelectedDomainStore(),
+              )..selectDomain(
+                const DomainSummary(id: 'zone-1', name: 'example.com'),
+              ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tapNavTab(tester, AppStrings.settingsTab);
+      await tester.pumpAndSettle();
+
+      expect(find.text(AppStrings.settingsTitle), findsWidgets);
+      expect(find.text(AppStrings.settingsDomainSectionTitle), findsOneWidget);
+      expect(find.text(AppStrings.settingsChangeDomainButton), findsOneWidget);
+      expect(find.text('example.com'), findsWidgets);
     });
   });
 
@@ -176,7 +459,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.catchAllTab));
+      await tapNavTab(tester, AppStrings.catchAllTab);
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.catchAllNoDomainSelected), findsOneWidget);
@@ -203,7 +486,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.catchAllTab));
+      await tapNavTab(tester, AppStrings.catchAllTab);
       await tester.pumpAndSettle();
 
       expect(
@@ -240,7 +523,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.catchAllTab));
+      await tapNavTab(tester, AppStrings.catchAllTab);
       await tester.pumpAndSettle();
 
       expect(find.text('amazon@example.com'), findsOneWidget);
@@ -285,7 +568,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.catchAllTab));
+      await tapNavTab(tester, AppStrings.catchAllTab);
       await tester.pumpAndSettle();
       await tester.tap(
         find.widgetWithText(FilledButton, AppStrings.createAliasButton),
@@ -345,7 +628,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.catchAllTab));
+      await tapNavTab(tester, AppStrings.catchAllTab);
       await tester.pumpAndSettle();
 
       expect(authRepository.logoutAttempts, 1);
@@ -377,7 +660,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.catchAllTab));
+      await tapNavTab(tester, AppStrings.catchAllTab);
       await tester.pumpAndSettle();
 
       expect(authRepository.logoutCalls, 0);
@@ -419,7 +702,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.activityTab));
+      await tapNavTab(tester, AppStrings.activityTab);
       await tester.pumpAndSettle();
 
       expect(find.text('sales@example.com'), findsOneWidget);
@@ -454,7 +737,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.tap(find.text(AppStrings.activityTab));
+      await tapNavTab(tester, AppStrings.activityTab);
       await tester.pumpAndSettle();
 
       expect(authRepository.logoutCalls, 0);
@@ -484,7 +767,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.domainActionLabel));
+      await tapDomainSelectorButton(tester);
       await tester.pumpAndSettle();
       await tester.tap(find.text('startup.io'));
       await tester.pumpAndSettle();
@@ -507,7 +790,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.domainActionLabel));
+      await tapDomainSelectorButton(tester);
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.domainLoadError), findsOneWidget);
@@ -529,7 +812,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.domainActionLabel));
+      await tapDomainSelectorButton(tester);
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.domainEmptyState), findsOneWidget);
@@ -551,9 +834,6 @@ void main() {
           domainContext: domainContext,
         ),
       );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text(AppStrings.domainActionLabel));
       await tester.pumpAndSettle();
 
       expect(authRepository.logoutAttempts, 1);
@@ -581,9 +861,6 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text(AppStrings.domainActionLabel));
-        await tester.pumpAndSettle();
-
         expect(authRepository.logoutAttempts, 1);
         expect(find.text(AppStrings.loginTitle), findsOneWidget);
         expect(domainContext.selectedDomain, isNull);
@@ -591,7 +868,7 @@ void main() {
       },
     );
 
-    testWidgets('recovers after transient domain load failure on retry', (
+    testWidgets('recovers after transient startup domain load failure', (
       WidgetTester tester,
     ) async {
       final domainContext = DomainContext(
@@ -608,12 +885,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.domainActionLabel));
-      await tester.pumpAndSettle();
+      expect(find.text(AppStrings.dashboardNoDomainTitle), findsOneWidget);
 
-      expect(find.text(AppStrings.domainLoadError), findsOneWidget);
-
-      await tester.tap(find.text(AppStrings.retryButton));
+      await tapDomainSelectorButton(tester);
       await tester.pumpAndSettle();
 
       expect(find.text('example.com'), findsWidgets);
@@ -653,7 +927,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
 
       expect(find.text('hello@example.com'), findsOneWidget);
@@ -682,7 +956,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
 
       expect(
@@ -724,7 +998,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
 
       expect(find.text(AppStrings.aliasLoadError), findsOneWidget);
@@ -760,7 +1034,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
 
       expect(authRepository.logoutAttempts, 1);
@@ -792,7 +1066,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text(AppStrings.aliasesTab));
+        await tapNavTab(tester, AppStrings.aliasesTab);
         await tester.pumpAndSettle();
 
         expect(authRepository.logoutAttempts, 1);
@@ -843,7 +1117,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pump();
 
       domainContext.selectDomain(
@@ -883,7 +1157,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.createAliasButton));
       await tester.pumpAndSettle();
@@ -914,7 +1188,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.createAliasButton));
       await tester.pumpAndSettle();
@@ -952,7 +1226,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.createAliasButton));
       await tester.pumpAndSettle();
@@ -991,7 +1265,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.createAliasButton));
       await tester.pumpAndSettle();
@@ -1030,7 +1304,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.createAliasButton));
       await tester.pumpAndSettle();
@@ -1069,7 +1343,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.createAliasButton));
       await tester.pumpAndSettle();
@@ -1115,7 +1389,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(AppStrings.editAliasTitle));
       await tester.pumpAndSettle();
@@ -1158,7 +1432,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(AppStrings.editAliasTitle));
       await tester.pumpAndSettle();
@@ -1209,7 +1483,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(AppStrings.editAliasTitle));
       await tester.pumpAndSettle();
@@ -1256,7 +1530,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(AppStrings.editAliasTitle));
       await tester.pumpAndSettle();
@@ -1304,7 +1578,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(AppStrings.editAliasTitle));
       await tester.pumpAndSettle();
@@ -1351,7 +1625,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
 
       expect(find.byTooltip(AppStrings.editAliasTitle), findsNothing);
@@ -1392,7 +1666,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(AppStrings.deleteAliasTooltip));
       await tester.pumpAndSettle();
@@ -1438,7 +1712,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(AppStrings.deleteAliasTooltip));
       await tester.pumpAndSettle();
@@ -1483,7 +1757,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip(AppStrings.deleteAliasTooltip));
       await tester.pumpAndSettle();
@@ -1529,7 +1803,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
@@ -1573,7 +1847,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
@@ -1618,7 +1892,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
@@ -1661,7 +1935,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
@@ -1693,7 +1967,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.aliasGeneratorButton));
       await tester.pumpAndSettle();
@@ -1725,7 +1999,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(AppStrings.aliasesTab));
+      await tapNavTab(tester, AppStrings.aliasesTab);
       await tester.pumpAndSettle();
       await tester.tap(find.text(AppStrings.aliasGeneratorButton));
       await tester.pumpAndSettle();
@@ -1761,7 +2035,11 @@ BariskodeCfEmailApp buildTestApp({
   return BariskodeCfEmailApp(
     authRepository: authRepository,
     domainContext:
-        domainContext ?? DomainContext(repository: FakeDomainRepository()),
+        domainContext ??
+        DomainContext(
+          repository: FakeDomainRepository(),
+          selectedDomainStore: FakeSelectedDomainStore(),
+        ),
     aliasRepository: aliasRepository ?? FakeAliasRepository(),
     catchAllRepository: catchAllRepository ?? const FakeCatchAllRepository(),
     analyticsRepository: analyticsRepository ?? FakeAnalyticsRepository(),
@@ -1850,6 +2128,39 @@ class FakeDomainRepository implements DomainRepositoryContract {
   }
 }
 
+class FakeSelectedDomainStore implements SelectedDomainStoreContract {
+  FakeSelectedDomainStore({this.initialDomainId});
+
+  final String? initialDomainId;
+  int clearCalls = 0;
+  String? currentDomainId;
+  final List<String> savedDomainIds = <String>[];
+
+  @override
+  Future<void> clearSelectedDomainId() async {
+    clearCalls += 1;
+    currentDomainId = null;
+  }
+
+  @override
+  Future<String?> readSelectedDomainId() async =>
+      currentDomainId ?? initialDomainId;
+
+  @override
+  Future<void> saveSelectedDomainId(String domainId) async {
+    currentDomainId = domainId;
+    savedDomainIds.add(domainId);
+  }
+}
+
+Future<void> tapNavTab(WidgetTester tester, String label) async {
+  await tester.tap(find.widgetWithText(NavigationDestination, label));
+}
+
+Future<void> tapDomainSelectorButton(WidgetTester tester) async {
+  await tester.tap(find.byType(TextButton).first);
+}
+
 class FlakyDomainRepository implements DomainRepositoryContract {
   FlakyDomainRepository({required this.domains});
 
@@ -1902,12 +2213,15 @@ class FakeAnalyticsRepository implements AnalyticsRepositoryContract {
   final List<ActivityLogEntry> logs;
   final AuthFailure? authFailure;
   final Exception? error;
+  final List<int> requestedLimits = <int>[];
 
   @override
   Future<List<ActivityLogEntry>> listActivityLogs({
     required String zoneId,
     int limit = 20,
   }) async {
+    requestedLimits.add(limit);
+
     if (authFailure != null) {
       throw authFailure!;
     }
@@ -1916,7 +2230,7 @@ class FakeAnalyticsRepository implements AnalyticsRepositoryContract {
       throw error!;
     }
 
-    return List<ActivityLogEntry>.unmodifiable(logs);
+    return List<ActivityLogEntry>.unmodifiable(logs.take(limit));
   }
 }
 

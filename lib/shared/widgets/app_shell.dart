@@ -7,7 +7,9 @@ import 'package:bariskode_cf_email/features/aliases/data/alias_repository.dart';
 import 'package:bariskode_cf_email/features/aliases/presentation/pages/alias_list_page.dart';
 import 'package:bariskode_cf_email/features/catchall/data/catchall_repository.dart';
 import 'package:bariskode_cf_email/features/catchall/presentation/pages/catchall_page.dart';
+import 'package:bariskode_cf_email/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
+import 'package:bariskode_cf_email/features/settings/presentation/pages/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
@@ -97,7 +99,21 @@ class _AppShellState extends State<AppShell> {
 
   Widget _buildPage(_AppTab selectedTab) {
     if (selectedTab.label == AppStrings.settingsTab) {
-      return _SettingsPage(onLogout: _handleLogout);
+      return SettingsPage(
+        domainContext: widget.domainContext,
+        onOpenDomainSelector: _openDomainSelector,
+        onLogout: _handleLogout,
+      );
+    }
+
+    if (selectedTab.label == AppStrings.dashboardTab) {
+      return DashboardPage(
+        domainContext: widget.domainContext,
+        onOpenDomainSelector: _openDomainSelector,
+        onOpenAliases: () => _selectTabByLabel(AppStrings.aliasesTab),
+        onOpenCatchAll: () => _selectTabByLabel(AppStrings.catchAllTab),
+        onOpenActivity: () => _selectTabByLabel(AppStrings.activityTab),
+      );
     }
 
     if (selectedTab.label == AppStrings.aliasesTab) {
@@ -159,6 +175,17 @@ class _AppShellState extends State<AppShell> {
 
     await Navigator.of(context).pushNamed(AppRoutes.domainSelector);
   }
+
+  void _selectTabByLabel(String tabLabel) {
+    final index = _tabs.indexWhere((tab) => tab.label == tabLabel);
+    if (index < 0) {
+      return;
+    }
+
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 }
 
 class _PlaceholderPage extends StatelessWidget {
@@ -206,40 +233,4 @@ class _AppTab {
 
   final String label;
   final IconData icon;
-}
-
-class _SettingsPage extends StatelessWidget {
-  const _SettingsPage({required this.onLogout});
-
-  final Future<void> Function() onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              AppStrings.placeholderTitle(AppStrings.settingsTab),
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              AppStrings.settingsPlaceholder,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 24),
-            FilledButton.tonalIcon(
-              onPressed: onLogout,
-              icon: const Icon(Icons.logout),
-              label: const Text(AppStrings.logoutButton),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

@@ -55,6 +55,13 @@ Cloudflare Email Manager Mobile adalah aplikasi Flutter untuk mengelola Cloudfla
 - Activity logs dasar
 - Bottom navigation: Dashboard, Aliases, Catch-All, Activity, Settings
 
+### Current Repo Status
+- Auth, domain selector, alias CRUD, alias generator, catch-all detection, dan activity logs dasar sudah terimplementasi.
+- Dashboard dan Settings kini diisi dengan layar minimal yang benar-benar usable untuk MVP.
+- Selected domain dipersist agar domain aktif tetap konsisten antar session app.
+- Activity logs memakai pola **manual load more** untuk MVP, bukan cursor pagination penuh.
+- Scope Catch-all MVP difokuskan pada **detect + create alias + ignore**. Action **Block** ditunda ke post-MVP.
+
 ### Production-Ready Scope
 - Secure token lifecycle yang lebih matang
 - Caching domain & alias list

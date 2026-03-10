@@ -2,12 +2,19 @@ import 'package:bariskode_cf_email/core/constants/app_routes.dart';
 import 'package:bariskode_cf_email/core/constants/app_strings.dart';
 import 'package:bariskode_cf_email/features/auth/domain/entities/auth_failure.dart';
 import 'package:bariskode_cf_email/features/auth/domain/repositories/auth_repository.dart';
+import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
+import 'package:bariskode_cf_email/shared/utils/session_resolution.dart';
 import 'package:flutter/material.dart';
 
 class AppStartup extends StatefulWidget {
-  const AppStartup({super.key, required this.authRepository});
+  const AppStartup({
+    super.key,
+    required this.authRepository,
+    required this.domainContext,
+  });
 
   final AuthRepository authRepository;
+  final DomainContext domainContext;
 
   @override
   State<AppStartup> createState() => _AppStartupState();
@@ -27,10 +34,14 @@ class _AppStartupState extends State<AppStartup> {
       _errorMessage = null;
     });
 
-    bool hasSession;
+    var hasSession = false;
+    late SessionResolution resolution;
 
     try {
-      hasSession = await widget.authRepository.hasValidSession();
+      resolution = await resolveSession(
+        authRepository: widget.authRepository,
+        domainContext: widget.domainContext,
+      );
     } on AuthFailure catch (failure) {
       if (failure.type == AuthFailureType.network) {
         if (!mounted) {
@@ -53,6 +64,24 @@ class _AppStartupState extends State<AppStartup> {
         _errorMessage = AppStrings.authStartupError;
       });
       return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    hasSession = resolution.hasValidSession;
+
+    if (!hasSession && resolution.hadStoredToken) {
+      widget.domainContext.clearSelection();
+    }
+
+    if (resolution.shouldInvalidateSession) {
+      try {
+        await widget.authRepository.logout();
+      } catch (_) {}
+      widget.domainContext.clearSelection();
+      hasSession = false;
     }
 
     if (!mounted) {

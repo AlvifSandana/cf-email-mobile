@@ -9,6 +9,7 @@ import 'package:bariskode_cf_email/features/auth/data/datasources/auth_local_dat
 import 'package:bariskode_cf_email/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:bariskode_cf_email/features/catchall/data/catchall_repository.dart';
 import 'package:bariskode_cf_email/features/domains/data/domain_repository.dart';
+import 'package:bariskode_cf_email/features/domains/data/selected_domain_store.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -16,7 +17,8 @@ import 'package:http/http.dart' as http;
 
 void main() {
   final httpClient = http.Client();
-  final localDataSource = AuthLocalDataSource(const FlutterSecureStorage());
+  const secureStorage = FlutterSecureStorage();
+  final localDataSource = AuthLocalDataSource(secureStorage);
   final apiClient = ApiClient(
     client: httpClient,
     headers: AuthHeaderProvider(localDataSource),
@@ -40,7 +42,10 @@ void main() {
     analyticsRepository: analyticsRepository,
     aliasRepository: aliasRepository,
   );
-  final domainContext = DomainContext(repository: domainRepository);
+  final domainContext = DomainContext(
+    repository: domainRepository,
+    selectedDomainStore: SelectedDomainStore(secureStorage),
+  );
 
   runApp(
     BariskodeCfEmailApp(

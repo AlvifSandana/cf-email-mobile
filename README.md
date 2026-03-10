@@ -139,4 +139,22 @@ Seluruh referensi awal tersedia di folder [`docs/`](./docs):
 
 ## Status Saat Ini
 
-Repository ini saat ini berada pada tahap perencanaan dan dokumentasi awal. Langkah berikutnya adalah menyiapkan project Flutter, fondasi network/auth, lalu membangun flow vertikal MVP mulai dari authentication hingga alias management.
+Repository ini **sudah memiliki implementasi Flutter yang berjalan** untuk flow utama MVP:
+
+- Login dengan Cloudflare API Token
+- Domain discovery + domain selector
+- Alias CRUD + enable/disable
+- Alias generator
+- Catch-all detection + ignore + create alias
+- Activity logs dasar
+
+Gap MVP yang baru diselesaikan atau sedang dipoles di repo ini:
+
+- Dashboard minimal yang real
+- Settings minimal yang real
+- Persist selected domain
+- Activity logs dengan manual load more
+
+Catatan scope:
+
+- Aksi **Catch-all Block** ditunda ke post-MVP agar tidak menambah risiko rule handling yang destruktif.
