@@ -12,6 +12,10 @@ class AppStrings {
   static const logoutButton = 'Logout';
   static const authCheckingSession = 'Checking secure session...';
   static const authStartupError = 'Unable to verify saved session.';
+  static const authSessionCleanupError =
+      'Unable to securely clear the saved session.';
+  static const authSessionCleanupWarning =
+      'Saved session cleanup may be incomplete. Please sign in again carefully.';
   static const retryButton = 'Retry';
   static const loginValidationEmpty = 'API token is required.';
   static const loginValidationBearerPrefix =

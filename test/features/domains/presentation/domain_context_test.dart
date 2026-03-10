@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bariskode_cf_email/features/domains/data/domain_repository.dart';
 import 'package:bariskode_cf_email/features/domains/data/selected_domain_store.dart';
 import 'package:bariskode_cf_email/features/domains/domain/entities/domain_summary.dart';
@@ -103,6 +105,30 @@ void main() {
     expect(store.saveAttempts, 1);
     expect(store.clearAttempts, 1);
   });
+
+  test(
+    'serializes store operations to preserve latest selection outcome',
+    () async {
+      final store = SequencedSelectedDomainStore();
+      final context = DomainContext(
+        repository: FakeDomainRepository(),
+        selectedDomainStore: store,
+      );
+
+      context.selectDomain(
+        const DomainSummary(id: 'zone-1', name: 'example.com'),
+      );
+      context.clearSelection();
+      context.selectDomain(
+        const DomainSummary(id: 'zone-2', name: 'startup.io'),
+      );
+
+      await store.completed;
+
+      expect(store.operations, ['save:zone-1', 'clear', 'save:zone-2']);
+      expect(store.currentDomainId, 'zone-2');
+    },
+  );
 }
 
 class FakeDomainRepository implements DomainRepositoryContract {
@@ -173,6 +199,37 @@ class ThrowingSelectedDomainStore implements SelectedDomainStoreContract {
     saveAttempts += 1;
     if (throwOnSave) {
       throw Exception('save failed');
+    }
+  }
+}
+
+class SequencedSelectedDomainStore implements SelectedDomainStoreContract {
+  final List<String> operations = <String>[];
+  final Completer<void> _completer = Completer<void>();
+  String? currentDomainId;
+
+  Future<void> get completed => _completer.future;
+
+  @override
+  Future<void> clearSelectedDomainId() async {
+    operations.add('clear');
+    currentDomainId = null;
+    _completeIfDone();
+  }
+
+  @override
+  Future<String?> readSelectedDomainId() async => currentDomainId;
+
+  @override
+  Future<void> saveSelectedDomainId(String domainId) async {
+    operations.add('save:$domainId');
+    currentDomainId = domainId;
+    _completeIfDone();
+  }
+
+  void _completeIfDone() {
+    if (!_completer.isCompleted && operations.length >= 3) {
+      _completer.complete();
     }
   }
 }

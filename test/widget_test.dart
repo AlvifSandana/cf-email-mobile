@@ -264,6 +264,89 @@ void main() {
         expect(find.text('Shell Page'), findsNothing);
         expect(domainContext.selectedDomain, isNull);
         expect(selectedDomainStore.clearCalls, greaterThanOrEqualTo(1));
+        expect(authRepository.logoutAttempts, 1);
+      },
+    );
+
+    testWidgets(
+      'shell route guard shows cleanup warning when logout fails during invalidation',
+      (WidgetTester tester) async {
+        final selectedDomainStore = FakeSelectedDomainStore(
+          initialDomainId: 'zone-1',
+        );
+        final domainContext = DomainContext(
+          repository: FakeDomainRepository(
+            authFailure: const AuthFailure.invalidToken(),
+          ),
+          selectedDomainStore: selectedDomainStore,
+        );
+        final authRepository = FakeAuthRepository(
+          initialToken: _validToken,
+          logoutFailure: Exception('secure storage delete failed'),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            initialRoute: AppRoutes.shell,
+            routes: {
+              AppRoutes.shell: (_) => ProtectedShellRoute(
+                authRepository: authRepository,
+                domainContext: domainContext,
+                child: const Scaffold(body: Text('Shell Page')),
+              ),
+              AppRoutes.login: (_) =>
+                  const Scaffold(body: Text(AppStrings.loginTitle)),
+            },
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(find.text(AppStrings.loginTitle), findsOneWidget);
+        expect(find.text(AppStrings.authSessionCleanupWarning), findsOneWidget);
+        expect(authRepository.logoutAttempts, 1);
+        expect(selectedDomainStore.clearCalls, greaterThanOrEqualTo(1));
+      },
+    );
+
+    testWidgets(
+      'shell route guard invalidates session on insufficient permissions',
+      (WidgetTester tester) async {
+        final selectedDomainStore = FakeSelectedDomainStore(
+          initialDomainId: 'zone-1',
+        );
+        final domainContext = DomainContext(
+          repository: FakeDomainRepository(
+            authFailure: const AuthFailure.insufficientPermissions(),
+          ),
+          selectedDomainStore: selectedDomainStore,
+        );
+        final authRepository = FakeAuthRepository(initialToken: _validToken);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            initialRoute: AppRoutes.shell,
+            routes: {
+              AppRoutes.shell: (_) => ProtectedShellRoute(
+                authRepository: authRepository,
+                domainContext: domainContext,
+                child: const Scaffold(body: Text('Shell Page')),
+              ),
+              AppRoutes.login: (_) =>
+                  const Scaffold(body: Text(AppStrings.loginTitle)),
+            },
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(find.text(AppStrings.loginTitle), findsOneWidget);
+        expect(find.text('Shell Page'), findsNothing);
+        expect(domainContext.selectedDomain, isNull);
+        expect(selectedDomainStore.clearCalls, greaterThanOrEqualTo(1));
+        expect(authRepository.logoutAttempts, 1);
       },
     );
 
@@ -850,6 +933,31 @@ void main() {
         final domainContext = DomainContext(
           repository: FakeDomainRepository(
             authFailure: const AuthFailure.invalidToken(),
+          ),
+        );
+
+        await tester.pumpWidget(
+          buildTestApp(
+            authRepository: authRepository,
+            domainContext: domainContext,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(authRepository.logoutAttempts, 1);
+        expect(find.text(AppStrings.authSessionCleanupError), findsOneWidget);
+        expect(find.text(AppStrings.loginTitle), findsNothing);
+        expect(find.text(AppStrings.retryButton), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'startup returns to login on insufficient permissions and logs out',
+      (WidgetTester tester) async {
+        final authRepository = FakeAuthRepository(initialToken: _validToken);
+        final domainContext = DomainContext(
+          repository: FakeDomainRepository(
+            authFailure: const AuthFailure.insufficientPermissions(),
           ),
         );
 
