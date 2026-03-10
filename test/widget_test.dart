@@ -269,7 +269,7 @@ void main() {
     );
 
     testWidgets(
-      'shell route guard shows cleanup warning when logout fails during invalidation',
+      'shell route guard stays put and shows cleanup error when logout fails during invalidation',
       (WidgetTester tester) async {
         final selectedDomainStore = FakeSelectedDomainStore(
           initialDomainId: 'zone-1',
@@ -303,8 +303,10 @@ void main() {
         await tester.pump();
         await tester.pumpAndSettle();
 
-        expect(find.text(AppStrings.loginTitle), findsOneWidget);
-        expect(find.text(AppStrings.authSessionCleanupWarning), findsOneWidget);
+        expect(find.text('Shell Page'), findsNothing);
+        expect(find.text(AppStrings.loginTitle), findsNothing);
+        expect(find.text(AppStrings.authSessionCleanupError), findsNWidgets(2));
+        expect(find.text(AppStrings.retryButton), findsOneWidget);
         expect(authRepository.logoutAttempts, 1);
         expect(selectedDomainStore.clearCalls, greaterThanOrEqualTo(1));
       },
@@ -435,8 +437,20 @@ void main() {
       WidgetTester tester,
     ) async {
       final authRepository = FakeAuthRepository(initialToken: _validToken);
+      final selectedDomainStore = FakeSelectedDomainStore();
+      final domainContext = DomainContext(
+        repository: FakeDomainRepository(
+          domains: const [DomainSummary(id: 'zone-1', name: 'example.com')],
+        ),
+        selectedDomainStore: selectedDomainStore,
+      )..selectDomain(const DomainSummary(id: 'zone-1', name: 'example.com'));
 
-      await tester.pumpWidget(buildTestApp(authRepository: authRepository));
+      await tester.pumpWidget(
+        buildTestApp(
+          authRepository: authRepository,
+          domainContext: domainContext,
+        ),
+      );
 
       await tester.pumpAndSettle();
       await tapNavTab(tester, AppStrings.settingsTab);
@@ -445,18 +459,32 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(authRepository.logoutCalls, 1);
+      expect(domainContext.selectedDomain, isNull);
+      expect(selectedDomainStore.clearCalls, greaterThanOrEqualTo(1));
       expect(find.text(AppStrings.loginTitle), findsOneWidget);
     });
 
-    testWidgets('shows snackbar and stays in shell when logout fails', (
+    testWidgets('shows cleanup error and stays in shell when logout fails', (
       WidgetTester tester,
     ) async {
       final authRepository = FakeAuthRepository(
         initialToken: _validToken,
         logoutFailure: Exception('storage failed'),
       );
+      final selectedDomainStore = FakeSelectedDomainStore();
+      final domainContext = DomainContext(
+        repository: FakeDomainRepository(
+          domains: const [DomainSummary(id: 'zone-1', name: 'example.com')],
+        ),
+        selectedDomainStore: selectedDomainStore,
+      )..selectDomain(const DomainSummary(id: 'zone-1', name: 'example.com'));
 
-      await tester.pumpWidget(buildTestApp(authRepository: authRepository));
+      await tester.pumpWidget(
+        buildTestApp(
+          authRepository: authRepository,
+          domainContext: domainContext,
+        ),
+      );
       await tester.pumpAndSettle();
       await tapNavTab(tester, AppStrings.settingsTab);
       await tester.pumpAndSettle();
@@ -464,7 +492,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(authRepository.logoutAttempts, 1);
-      expect(find.text(AppStrings.logoutError), findsOneWidget);
+      expect(domainContext.selectedDomain, isNull);
+      expect(selectedDomainStore.clearCalls, greaterThanOrEqualTo(1));
+      expect(find.text(AppStrings.authSessionCleanupError), findsOneWidget);
+      expect(find.text(AppStrings.loginTitle), findsNothing);
       expect(find.text(AppStrings.settingsTitle), findsWidgets);
     });
   });
@@ -2258,6 +2289,23 @@ class FakeSelectedDomainStore implements SelectedDomainStoreContract {
   Future<void> saveSelectedDomainId(String domainId) async {
     currentDomainId = domainId;
     savedDomainIds.add(domainId);
+  }
+}
+
+class FlakyClearSelectedDomainStore extends FakeSelectedDomainStore {
+  FlakyClearSelectedDomainStore({super.initialDomainId});
+
+  bool _shouldFail = true;
+
+  @override
+  Future<void> clearSelectedDomainId() async {
+    clearCalls += 1;
+    if (_shouldFail) {
+      _shouldFail = false;
+      throw Exception('clear failed once');
+    }
+
+    currentDomainId = null;
   }
 }
 

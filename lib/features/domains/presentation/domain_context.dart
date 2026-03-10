@@ -114,6 +114,19 @@ class DomainContext extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> clearSelectionAndWait() async {
+    _domains = const [];
+    _selectedDomain = null;
+    _errorMessage = null;
+    _isLoading = false;
+    _authFailure = null;
+    notifyListeners();
+
+    return _enqueueStoreOperation(() async {
+      await _selectedDomainStore.clearSelectedDomainId();
+    });
+  }
+
   void _persistSelectedDomain(DomainSummary domain) {
     unawaited(
       _enqueueStoreOperation(() async {
@@ -130,13 +143,18 @@ class DomainContext extends ChangeNotifier {
     );
   }
 
-  Future<void> _enqueueStoreOperation(Future<void> Function() operation) {
-    _storeOperationQueue = _storeOperationQueue.then((_) async {
+  Future<bool> _enqueueStoreOperation(Future<void> Function() operation) {
+    final operationFuture = _storeOperationQueue.then((_) async {
       try {
         await operation();
-      } catch (_) {}
+        return true;
+      } catch (_) {
+        return false;
+      }
     });
 
-    return _storeOperationQueue;
+    _storeOperationQueue = operationFuture.then((_) {});
+
+    return operationFuture;
   }
 }

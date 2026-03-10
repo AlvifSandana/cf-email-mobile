@@ -5,6 +5,7 @@ import 'package:bariskode_cf_email/features/auth/domain/entities/auth_failure.da
 import 'package:bariskode_cf_email/features/auth/domain/repositories/auth_repository.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
 import 'package:bariskode_cf_email/shared/utils/session_invalidator.dart';
+import 'package:bariskode_cf_email/shared/widgets/state_views.dart';
 import 'package:flutter/material.dart';
 
 class ActivityLogsPage extends StatefulWidget {
@@ -247,61 +248,40 @@ class _ActivityLogsPageState extends State<ActivityLogsPage> {
         final selectedDomain = widget.domainContext.selectedDomain;
 
         if (selectedDomain == null) {
-          return const Center(child: Text(AppStrings.activityNoDomainSelected));
-        }
-
-        if (_isLoading && _logs.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text(AppStrings.activityLoadingLabel),
-              ],
-            ),
+          return const AppCenteredState(
+            icon: Icons.public_off_outlined,
+            message: AppStrings.activityNoDomainSelected,
           );
         }
 
+        if (_isLoading && _logs.isEmpty) {
+          return const AppLoadingState(label: AppStrings.activityLoadingLabel);
+        }
+
         if (_errorMessage != null) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_errorMessage!, textAlign: TextAlign.center),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: _loadLogs,
-                    child: const Text(AppStrings.retryButton),
-                  ),
-                ],
+          return AppCenteredState(
+            icon: Icons.cloud_off_outlined,
+            message: _errorMessage!,
+            actions: [
+              FilledButton(
+                onPressed: _loadLogs,
+                child: const Text(AppStrings.retryButton),
               ),
-            ),
+            ],
           );
         }
 
         if (_logs.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    AppStrings.activityEmptyState(selectedDomain.name),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: _loadLogs,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text(AppStrings.activityRefreshButton),
-                  ),
-                ],
+          return AppCenteredState(
+            icon: Icons.query_stats_outlined,
+            message: AppStrings.activityEmptyState(selectedDomain.name),
+            actions: [
+              OutlinedButton.icon(
+                onPressed: _loadLogs,
+                icon: const Icon(Icons.refresh),
+                label: const Text(AppStrings.activityRefreshButton),
               ),
-            ),
+            ],
           );
         }
 

@@ -92,7 +92,18 @@ class _AppStartupState extends State<AppStartup> {
 
       hasSession = false;
     } else if (!hasSession && resolution.hadStoredToken) {
-      widget.domainContext.clearSelection();
+      final didClearSelection = await widget.domainContext
+          .clearSelectionAndWait();
+      if (!didClearSelection) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          _errorMessage = AppStrings.authSessionCleanupError;
+        });
+        return;
+      }
     }
 
     if (!mounted) {

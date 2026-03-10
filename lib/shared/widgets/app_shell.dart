@@ -10,6 +10,7 @@ import 'package:bariskode_cf_email/features/catchall/presentation/pages/catchall
 import 'package:bariskode_cf_email/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
 import 'package:bariskode_cf_email/features/settings/presentation/pages/settings_page.dart';
+import 'package:bariskode_cf_email/shared/utils/session_invalidator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
@@ -145,27 +146,11 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _handleLogout() async {
-    try {
-      await widget.authRepository.logout();
-      widget.domainContext.clearSelection();
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text(AppStrings.logoutError)));
-      return;
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    Navigator.of(
-      context,
-    ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+    await invalidateSessionAndReturnToLogin(
+      context: context,
+      authRepository: widget.authRepository,
+      domainContext: widget.domainContext,
+    );
   }
 
   Future<void> _openDomainSelector() async {

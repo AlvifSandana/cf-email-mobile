@@ -118,14 +118,34 @@ void main() {
       context.selectDomain(
         const DomainSummary(id: 'zone-1', name: 'example.com'),
       );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(store.startedOperations, ['save:zone-1']);
+
       context.clearSelection();
       context.selectDomain(
         const DomainSummary(id: 'zone-2', name: 'startup.io'),
       );
+      await Future<void>.delayed(Duration.zero);
 
-      await store.completed;
+      expect(store.startedOperations, ['save:zone-1']);
 
-      expect(store.operations, ['save:zone-1', 'clear', 'save:zone-2']);
+      await store.completeNextOperation();
+      await Future<void>.delayed(Duration.zero);
+      expect(store.startedOperations, ['save:zone-1', 'clear']);
+
+      await store.completeNextOperation();
+      await Future<void>.delayed(Duration.zero);
+      expect(store.startedOperations, ['save:zone-1', 'clear', 'save:zone-2']);
+
+      await store.completeNextOperation();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(store.completedOperations, [
+        'save:zone-1',
+        'clear',
+        'save:zone-2',
+      ]);
       expect(store.currentDomainId, 'zone-2');
     },
   );
@@ -204,17 +224,27 @@ class ThrowingSelectedDomainStore implements SelectedDomainStoreContract {
 }
 
 class SequencedSelectedDomainStore implements SelectedDomainStoreContract {
-  final List<String> operations = <String>[];
-  final Completer<void> _completer = Completer<void>();
+  final List<String> startedOperations = <String>[];
+  final List<String> completedOperations = <String>[];
+  final List<_PendingStoreOperation> _pendingOperations =
+      <_PendingStoreOperation>[];
   String? currentDomainId;
-
-  Future<void> get completed => _completer.future;
 
   @override
   Future<void> clearSelectedDomainId() async {
-    operations.add('clear');
-    currentDomainId = null;
-    _completeIfDone();
+    final completer = Completer<void>();
+    startedOperations.add('clear');
+    _pendingOperations.add(
+      _PendingStoreOperation(
+        label: 'clear',
+        completer: completer,
+        onComplete: () {
+          currentDomainId = null;
+          completedOperations.add('clear');
+        },
+      ),
+    );
+    await completer.future;
   }
 
   @override
@@ -222,14 +252,37 @@ class SequencedSelectedDomainStore implements SelectedDomainStoreContract {
 
   @override
   Future<void> saveSelectedDomainId(String domainId) async {
-    operations.add('save:$domainId');
-    currentDomainId = domainId;
-    _completeIfDone();
+    final label = 'save:$domainId';
+    final completer = Completer<void>();
+    startedOperations.add(label);
+    _pendingOperations.add(
+      _PendingStoreOperation(
+        label: label,
+        completer: completer,
+        onComplete: () {
+          currentDomainId = domainId;
+          completedOperations.add(label);
+        },
+      ),
+    );
+    await completer.future;
   }
 
-  void _completeIfDone() {
-    if (!_completer.isCompleted && operations.length >= 3) {
-      _completer.complete();
-    }
+  Future<void> completeNextOperation() async {
+    final operation = _pendingOperations.removeAt(0);
+    operation.onComplete();
+    operation.completer.complete();
   }
+}
+
+class _PendingStoreOperation {
+  _PendingStoreOperation({
+    required this.label,
+    required this.completer,
+    required this.onComplete,
+  });
+
+  final String label;
+  final Completer<void> completer;
+  final void Function() onComplete;
 }

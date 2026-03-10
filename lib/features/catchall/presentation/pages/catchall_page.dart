@@ -8,6 +8,7 @@ import 'package:bariskode_cf_email/features/catchall/domain/entities/catchall_en
 import 'package:bariskode_cf_email/features/domains/domain/entities/domain_summary.dart';
 import 'package:bariskode_cf_email/features/domains/presentation/domain_context.dart';
 import 'package:bariskode_cf_email/shared/utils/session_invalidator.dart';
+import 'package:bariskode_cf_email/shared/widgets/state_views.dart';
 import 'package:flutter/material.dart';
 
 class CatchAllPage extends StatefulWidget {
@@ -217,62 +218,41 @@ class _CatchAllPageState extends State<CatchAllPage> {
         final selectedDomain = widget.domainContext.selectedDomain;
 
         if (selectedDomain == null) {
-          return const Center(child: Text(AppStrings.catchAllNoDomainSelected));
-        }
-
-        if (_isLoading) {
-          return const Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text(AppStrings.catchAllLoadingLabel),
-              ],
-            ),
+          return const AppCenteredState(
+            icon: Icons.public_off_outlined,
+            message: AppStrings.catchAllNoDomainSelected,
           );
         }
 
+        if (_isLoading) {
+          return const AppLoadingState(label: AppStrings.catchAllLoadingLabel);
+        }
+
         if (_errorMessage != null) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_errorMessage!, textAlign: TextAlign.center),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: _loadEntries,
-                    child: const Text(AppStrings.retryButton),
-                  ),
-                ],
+          return AppCenteredState(
+            icon: Icons.cloud_off_outlined,
+            message: _errorMessage!,
+            actions: [
+              FilledButton(
+                onPressed: _loadEntries,
+                child: const Text(AppStrings.retryButton),
               ),
-            ),
+            ],
           );
         }
 
         final visibleEntries = _visibleEntries;
         if (visibleEntries.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    AppStrings.catchAllEmptyState(selectedDomain.name),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: _loadEntries,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text(AppStrings.catchAllRefreshButton),
-                  ),
-                ],
+          return AppCenteredState(
+            icon: Icons.mark_email_unread_outlined,
+            message: AppStrings.catchAllEmptyState(selectedDomain.name),
+            actions: [
+              OutlinedButton.icon(
+                onPressed: _loadEntries,
+                icon: const Icon(Icons.refresh),
+                label: const Text(AppStrings.catchAllRefreshButton),
               ),
-            ),
+            ],
           );
         }
 

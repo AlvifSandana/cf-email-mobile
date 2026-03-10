@@ -22,14 +22,15 @@ Future<SessionInvalidationResult> invalidateSession({
     didClearStoredSession = false;
   }
 
-  domainContext.clearSelection();
+  final didClearPersistedSelection = await domainContext
+      .clearSelectionAndWait();
 
   return SessionInvalidationResult(
-    didClearStoredSession: didClearStoredSession,
+    didClearStoredSession: didClearStoredSession && didClearPersistedSelection,
   );
 }
 
-Future<void> invalidateSessionAndReturnToLogin({
+Future<bool> invalidateSessionAndReturnToLogin({
   required BuildContext context,
   required AuthRepository authRepository,
   required DomainContext domainContext,
@@ -40,16 +41,19 @@ Future<void> invalidateSessionAndReturnToLogin({
   );
 
   if (!context.mounted) {
-    return;
+    return false;
+  }
+
+  if (!result.didClearStoredSession) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(AppStrings.authSessionCleanupError)),
+    );
+    return false;
   }
 
   Navigator.of(
     context,
   ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
 
-  if (!result.didClearStoredSession) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(AppStrings.authSessionCleanupWarning)),
-    );
-  }
+  return true;
 }

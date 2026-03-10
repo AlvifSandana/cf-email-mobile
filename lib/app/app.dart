@@ -82,6 +82,8 @@ class ProtectedShellRoute extends StatefulWidget {
 class _ProtectedShellRouteState extends State<ProtectedShellRoute> {
   late Future<_ProtectedShellDecision> _accessDecisionFuture;
   bool _redirectScheduled = false;
+  bool _cleanupFailed = false;
+  _ProtectedShellDecision? _pendingCleanupDecision;
 
   @override
   void initState() {
@@ -135,6 +137,44 @@ class _ProtectedShellRouteState extends State<ProtectedShellRoute> {
           return widget.child;
         }
 
+        if (_cleanupFailed) {
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      AppStrings.authSessionCleanupError,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: () {
+                        setState(() {
+                          _cleanupFailed = false;
+                          _redirectScheduled = false;
+                        });
+
+                        _scheduleRedirect(
+                          _pendingCleanupDecision ??
+                              const _ProtectedShellDecision(
+                                hasValidSession: false,
+                                hadStoredToken: true,
+                                shouldInvalidateSession: true,
+                              ),
+                        );
+                      },
+                      child: const Text(AppStrings.retryButton),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
         _scheduleRedirect(decision);
 
         return const Scaffold(body: SizedBox.shrink());
@@ -161,22 +201,45 @@ class _ProtectedShellRouteState extends State<ProtectedShellRoute> {
     }
 
     _redirectScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) {
         return;
       }
 
       if (decision?.shouldInvalidateSession == true) {
-        invalidateSessionAndReturnToLogin(
+        _pendingCleanupDecision = decision;
+        final didNavigate = await invalidateSessionAndReturnToLogin(
           context: context,
           authRepository: widget.authRepository,
           domainContext: widget.domainContext,
         );
+
+        if (!didNavigate && mounted) {
+          setState(() {
+            _cleanupFailed = true;
+            _redirectScheduled = false;
+          });
+        } else {
+          _pendingCleanupDecision = null;
+        }
         return;
       }
 
       if (decision?.hadStoredToken == true) {
-        widget.domainContext.clearSelection();
+        final didClearSelection = await widget.domainContext
+            .clearSelectionAndWait();
+        if (!didClearSelection) {
+          setState(() {
+            _cleanupFailed = true;
+            _redirectScheduled = false;
+            _pendingCleanupDecision = const _ProtectedShellDecision(
+              hasValidSession: false,
+              hadStoredToken: true,
+              shouldInvalidateSession: true,
+            );
+          });
+          return;
+        }
       }
 
       Navigator.of(
